@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Journées">
+<meta name="theme-color" content="#f2f1ec">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Journées & pleins</title>
+<style>
+/* VOICE: outil de cabine, sobre et direct
+   IDEA: le disque/chronotachygraphe et le marquage routier
+   PICTURE: les deux gros boutons DÉPART / ARRIVÉE
+   COLOUR and TYPE: fond papier, encre, vert départ, jaune marquage, rouge alerte ; police système
+   LAYOUT: une colonne, barre d'onglets en bas */
+:root{color-scheme:light dark;
+--bg:light-dark(#f2f1ec,#121416);--card:light-dark(#ffffff,#1d2024);--ink:light-dark(#15191d,#eef0f2);
+--mut:light-dark(#5f6870,#9aa3ab);--line:light-dark(#dcdcd4,#30353a);--go:#15834a;--arr:light-dark(#1f2a35,#3b4b5c);
+--yel:#f0b81c;--red:#d3311f;--chip:light-dark(#ecebe4,#272b30)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
+html{overscroll-behavior:none;touch-action:manipulation}html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif}
+body{overflow-x:clip;padding:env(safe-area-inset-top) 0 calc(74px + env(safe-area-inset-bottom))}
+main{max-width:640px;margin:0 auto;padding:12px 14px 20px}
+h1{font-size:26px;line-height:1.1;margin:6px 0 12px;letter-spacing:-.01em}
+h2{font-size:17px;margin:22px 0 8px}
+.muted{color:var(--mut);font-size:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin:10px 0}
+.big2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+.bigb{border:0;border-radius:20px;color:#fff;font-weight:800;font-size:22px;letter-spacing:.04em;min-height:132px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;box-shadow:0 3px 0 rgba(0,0,0,.18)}
+.bigb small{font-weight:500;font-size:13px;letter-spacing:0;opacity:.85}
+.bigb:active{transform:translateY(2px);box-shadow:none}
+.bdep{background:var(--go)}.barr{background:var(--arr)}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{background:var(--chip);border-radius:12px;padding:10px 12px}
+.tile b{display:block;font-size:30px;line-height:1.1;font-variant-numeric:tabular-nums}
+.tile span{font-size:13px;color:var(--mut)}
+.tile.warn b{color:var(--red)}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sp{flex:1}
+.boxes{display:flex;gap:8px}
+.box{width:38px;height:38px;border-radius:9px;border:2px solid var(--ink);background:transparent;padding:0}
+.box.on{background:var(--yel);border-color:var(--yel);box-shadow:inset 0 0 0 3px var(--card)}
+.box.auto{cursor:default}
+.ctr{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0}
+.ctr+.ctr{border-top:1px solid var(--line)}
+.btn{border:0;border-radius:12px;background:var(--chip);color:var(--ink);font-weight:600;font-size:16px;line-height:1;font-family:inherit;min-height:46px;padding:0 16px}
+.btn.pri{background:var(--go);color:#fff}.btn.dark{background:var(--arr);color:#fff}.btn.red{background:var(--red);color:#fff}
+.btn.full{width:100%}.btn.sm{min-height:36px;font-size:14px;padding:0 12px;border-radius:10px}
+.badge{display:inline-block;min-width:20px;height:20px;border-radius:10px;background:var(--red);color:#fff;font-size:12px;font-weight:700;text-align:center;line-height:20px;padding:0 6px;margin-left:6px}
+.banner{border-radius:12px;padding:10px 12px;margin:8px 0;display:flex;gap:10px;align-items:center;font-size:15px}
+.banner.y{background:color-mix(in srgb,var(--yel) 25%,var(--card))}
+.banner.r{background:color-mix(in srgb,var(--red) 18%,var(--card));color:var(--ink)}
+.banner.g{background:color-mix(in srgb,var(--go) 16%,var(--card))}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(5,1fr);background:var(--card);border-top:1px solid var(--line);padding:4px 4px calc(4px + env(safe-area-inset-bottom));z-index:5}
+nav.tabs button{background:none;border:0;color:var(--mut);font-weight:600;font-size:11px;line-height:1.2;font-family:inherit;padding:6px 0;display:flex;flex-direction:column;align-items:center;gap:3px;position:relative}
+nav.tabs button svg{width:24px;height:24px}
+nav.tabs button.on{color:var(--ink)}
+nav.tabs .dot{position:absolute;top:3px;left:calc(50% + 8px);width:9px;height:9px;border-radius:5px;background:var(--red)}
+.list{list-style:none;margin:0;padding:0}
+.list li{display:flex;align-items:center;gap:10px;padding:11px 2px;border-bottom:1px solid var(--line)}
+.list li .t{flex:1}.list li .t small{display:block;color:var(--mut);font-size:13px}
+.chipst{display:inline-block;border-radius:8px;padding:3px 8px;font-size:12px;font-weight:700;background:var(--chip)}
+.chipst.paye{background:color-mix(in srgb,var(--go) 22%,var(--card))}.chipst.rass{background:color-mix(in srgb,var(--yel) 35%,var(--card))}.chipst.np{background:var(--chip)}.chipst.pend{background:var(--red);color:#fff}
+/* feuilles modales */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;display:flex;align-items:flex-end;justify-content:center;animation:fd .15s}
+.sheet{background:var(--bg);width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:16px 16px calc(18px + env(safe-area-inset-bottom));animation:up .2s ease-out}
+.sheet h3{margin:0 0 12px;font-size:20px}
+@keyframes up{from{transform:translateY(40px);opacity:.4}}@keyframes fd{from{opacity:0}}
+@media (prefers-reduced-motion:reduce){.ov,.sheet{animation:none}}
+label{display:block;font-size:13px;color:var(--mut);font-weight:600}
+input,select{display:block;width:100%;font-size:16px;font-family:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:11px 10px;margin-top:4px;min-height:46px}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--go);outline-offset:1px}
+.fg{margin:10px 0}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.plrow{display:grid;grid-template-columns:1fr 64px 60px;gap:8px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:18px;padding:7px 12px;font-weight:600;font-size:14px;font-family:inherit}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.sugg{display:flex;flex-direction:column;gap:2px;margin-top:4px}
+.sugg button{text-align:left;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:9px 10px;font-size:15px;font-family:inherit;color:var(--ink)}
+.tog{display:flex;gap:8px;flex-wrap:wrap}
+.tog button{flex:1;min-height:50px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--ink);font-weight:700;font-size:16px;font-family:inherit}
+.tog button.on{border-color:var(--go);background:color-mix(in srgb,var(--go) 15%,var(--card))}
+.acts{display:flex;gap:10px;margin-top:16px}.acts .btn{flex:1}
+.check{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--card);margin:8px 0;font-weight:600;font-size:16px;font-family:inherit;color:var(--ink)}
+.check input{width:24px;height:24px;min-height:0;margin:0;accent-color:var(--go)}
+.seg{display:flex;background:var(--chip);border-radius:12px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:none;border-radius:10px;min-height:40px;font-weight:600;font-size:14px;font-family:inherit;color:var(--mut)}
+.seg button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.mnav{display:flex;align-items:center;gap:8px;margin:6px 0 10px}.mnav b{flex:1;text-align:center;font-size:17px}
+.prev{background:#fff;border:1px solid var(--line);border-radius:6px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.prev svg{display:block;width:100%;height:auto}
+.cmpt{border-collapse:collapse;font-size:14px;min-width:100%}.cmpt th,.cmpt td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}.cmpt td:first-child,.cmpt th:first-child{text-align:left;white-space:normal;min-width:120px;color:var(--mut)}.cmpt th{vertical-align:top}
+.dtb{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:4px 0 6px}
+.dtb label{padding:8px 12px 6px;margin:0}.dtb label+label{border-left:1px solid var(--line)}
+.dtb input{-webkit-appearance:none;appearance:none;border:0;background:none;padding:2px 0 4px;margin:0;min-height:0;width:100%;min-width:0;text-align:left;color:var(--ink)}
+.dtb input::-webkit-date-and-time-value{text-align:left}
+.dtd input{font-size:17px;font-weight:600}.dtt input{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:.01em}
+input[type=date],input[type=time]{min-width:0;max-width:100%}
+.toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);border-radius:12px;padding:10px 14px;z-index:30;display:flex;gap:14px;align-items:center;font-size:15px;max-width:92vw}
+.toast button{background:none;border:0;color:var(--yel);font-weight:700;font-size:15px;font-family:inherit}
+body.noscroll{position:fixed;inset:0;overflow:hidden}
+body.noscroll main{height:calc(100dvh - 74px - env(safe-area-inset-bottom) - env(safe-area-inset-top));display:flex;flex-direction:column;padding-bottom:10px;overflow:hidden}
+body.noscroll .big2{flex:1;min-height:100px}body.noscroll .bigb{min-height:0}
+body.noscroll h1{margin:2px 0 6px}body.noscroll .card{margin:6px 0}
+.amp{position:relative;background:var(--chip);border-radius:12px;padding:20px 12px 8px}
+.amp span{position:absolute;top:6px;right:10px;font-size:12px;color:var(--mut);font-weight:600}
+.stt{background:var(--chip);border-radius:12px;padding:9px 12px 10px}.stt span{display:block;font-size:12.5px;line-height:1.25;color:var(--mut);font-weight:600;min-height:2.5em}.stt b{display:block;font-size:22px;line-height:1.15;margin-top:2px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.amp b{font-size:30px;line-height:1.1;font-variant-numeric:tabular-nums}.amp.warn b{color:var(--red)}
+.big-time{font-size:34px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
+.alert{color:var(--red);font-weight:700}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<nav class="tabs" id="tabs"></nav>
+<script>
+{
+/* ================== utilitaires ================== */
+const HR=3600e3, DAY=86400e3, KEY='jp-data-v1';
+const pad=n=>String(n).padStart(2,'0');
+const fT=ms=>{const d=new Date(ms);return pad(d.getHours())+':'+pad(d.getMinutes())};
+const dk=ms=>{const d=new Date(ms);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
+const kDate=k=>{const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d)};
+const addDays=(k,n)=>{const d=kDate(k);d.setDate(d.getDate()+n);return dk(d.getTime())};
+const JL=['D','L','M','M','J','V','S'], JN=['dim.','lun.','mar.','mer.','jeu.','ven.','sam.'];
+const MOIS=['JANVIER','FÉVRIER','MARS','AVRIL','MAI','JUIN','JUILLET','AOÛT','SEPTEMBRE','OCTOBRE','NOVEMBRE','DÉCEMBRE'];
+const Mois=m=>MOIS[m].charAt(0)+MOIS[m].slice(1).toLowerCase();
+const fD=ms=>{const d=new Date(ms);return JN[d.getDay()]+' '+pad(d.getDate())+'/'+pad(d.getMonth()+1)};
+const fK=k=>fD(kDate(k).getTime());
+const fDur=ms=>{const m=Math.max(0,Math.round(ms/60000));return Math.floor(m/60)+' h '+pad(m%60)};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const $=id=>document.getElementById(id);
+const inputsToMs=(dv,tv)=>{const [y,m,d]=dv.split('-').map(Number);const [h,mi]=tv.split(':').map(Number);return new Date(y,m-1,d,h,mi).getTime()};
+const plStr=p=>!p||!p.n?'—':p.n+(p.d?' ('+p.d+')':'')+(p.p&&p.p!=='F'?' '+p.p:'');
+
+/* ================== jours fériés ================== */
+function easter(y){const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),mo=Math.floor((h+l-7*m+114)/31),da=((h+l-7*m+114)%31)+1;return new Date(y,mo-1,da)}
+const ferC={};
+function feries(y){if(ferC[y])return ferC[y];const e=easter(y);const add=n=>dk(new Date(y,e.getMonth(),e.getDate()+n).getTime());
+return ferC[y]=new Set([y+'-01-01',add(1),y+'-05-01',y+'-05-08',add(39),add(50),y+'-07-14',y+'-08-15',y+'-11-01',y+'-11-11',y+'-12-25'])}
+const isGrey=k=>{const w=kDate(k).getDay();return w===0||w===6||feries(+k.slice(0,4)).has(k)};
+
+/* ================== données ================== */
+const DEF={v:1,settings:{setup:false,societe:'',nom:'',tracteur:'',remorque:'',depotNom:'',depotDep:'',domDep:''},
+services:[],pleins:[],lavages:[],absences:[],wk:{},drv:[],places:[],km:{},aliases:[],trucks:null,consoRef:[],consoFlags:{},rass:{},oldTrucks:[],airRef:{},lastBackup:0};
+let S, storageOK=true;
+function load(){let raw=null;try{raw=localStorage.getItem(KEY)}catch(e){storageOK=false}
+ let d=null;try{d=raw?JSON.parse(raw):null}catch(e){d=null}
+ return migrate(d||JSON.parse(JSON.stringify(DEF)))}
+function migrate(d){const o=JSON.parse(JSON.stringify(DEF));for(const k in o){if(d[k]===undefined)d[k]=o[k]}
+ d.settings=Object.assign({},o.settings,d.settings||{});
+ if(!d.trucks){const t=new Date();t.setHours(0,0,0,0);d.trucks=d.settings.tracteur?[{immat:d.settings.tracteur,since:t.getTime()}]:[]}
+ return d}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));storageOK=true}catch(e){storageOK=false}}
+S=load();
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+
+/* ================== absences ================== */
+const ABS={'CONGÉ':'Congé','FORMATION':'Formation','AT':'AT'};
+const absOn=k=>S.absences.find(a=>a.from<=k&&k<=a.to);
+function removeAbsDay(a,k){S.absences=S.absences.filter(x=>x!==a);
+ const p=addDays(k,-1),n=addDays(k,1);
+ if(a.from<=p)S.absences.push({...a,id:uid(),to:p});
+ if(n<=a.to)S.absences.push({...a,id:uid(),from:n})}
+
+/* ================== analyse RSE ================== */
+function deadlineOf(ms){const d=new Date(ms);d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7)+28);return d.getTime()-60000}
+function wkAuto(r){const n=norm(r.a.ep&&r.a.ep.n);if(!n)return null;
+ if(n==='depot'||(S.settings.depotNom&&n===norm(S.settings.depotNom)))return 'depot';
+ if(n==='domicile')return 'dom';return null}
+const wkStatus=r=>wkAuto(r)||S.wk[r.a.id]||null;
+function analyze(now=Date.now()){
+ const sv=[...S.services].sort((a,b)=>a.s-b.s);
+ const rests=[];
+ sv.forEach((a,i)=>{if(!a.e)return;const b=sv[i+1]||null;
+  rests.push(b?{a,b,from:a.e,to:b.s,gap:b.s-a.e,done:true}:{a,b:null,from:a.e,to:now,gap:now-a.e,done:false})});
+ const touchWE=(f,t)=>{for(let k=dk(f);k<=dk(t);k=addDays(k,1)){const w=kDate(k).getDay();if(w===0||w===6)return true}return false};
+ rests.forEach(r=>r.weekly=r.gap>=45*HR||(r.gap>=24*HR&&touchWE(r.from,r.to)));
+ let cycleStart=0;for(const r of rests)if(r.weekly)cycleStart=r.done?r.to:Infinity;
+ const last=sv[sv.length-1]||null, open=last&&!last.e?last:null;
+ let reduced=0;const alerts=[];
+ for(const a of sv){if(a.s<cycleStart)continue;
+  const amp=(a.e||now)-a.s, r=rests.find(x=>x.a===a);
+  const short=r&&r.done&&!r.weekly&&r.gap<11*HR;
+  if(amp>13*HR||short)reduced++;
+  if(amp>15*HR)alerts.push('Amplitude de '+fDur(amp)+' ('+fD(a.s)+') : maximum 15 h');
+  if(r&&r.done&&!r.weekly&&r.gap<9*HR)alerts.push('Repos de '+fDur(r.gap)+' après le '+fD(a.s)+' : minimum 9 h')}
+ if(reduced>3)alerts.push(reduced+' repos réduits depuis le dernier repos hebdo : maximum 3');
+ const drv=S.drv.filter(t=>t>=cycleStart).length;
+ const debts=[];
+ for(const r of rests){if(!r.done)continue;
+  if(r.weekly&&r.gap<45*HR){debts.push({r,h:45*HR-r.gap,deadline:deadlineOf(r.from),settled:null});continue}
+  const base=r.weekly?45*HR:(r.gap>=11*HR?11*HR:null);if(base==null)continue;
+  let acc=0;for(const d of debts){if(d.settled)continue;if(r.gap>=base+acc+d.h){acc+=d.h;d.settled=r}else break}}
+ const openDebts=debts.filter(d=>!d.settled);
+ openDebts.forEach(d=>{if(now>d.deadline)alerts.push('Rattrapage de '+fDur(d.h)+' en retard (date limite '+fD(d.deadline)+')')});
+ const weeklies=rests.filter(r=>r.weekly);
+ const pendingWk=weeklies.filter(r=>r.done&&!wkStatus(r)&&r.to>now-14*DAY);
+ return {sv,rests,cycleStart,last,open,reduced,alerts,drv,debts,openDebts,weeklies,pendingWk,now}}
+
+/* ================== lieux & communes ================== */
+let COM=[], comState='absent';
+const ISO2PL={fr:'F',it:'I',pl:'PL',de:'D',es:'E',be:'B',nl:'NL',lu:'L',ch:'CH',at:'A',pt:'P',gb:'GB',cz:'CZ',sk:'SK',hu:'H',si:'SLO',hr:'HR',dk:'DK',se:'S',no:'N',ro:'RO',bg:'BG',ie:'IRL',gr:'GR',li:'FL',mc:'MC',ad:'AND',lt:'LT',lv:'LV',ee:'EST',fi:'FIN'};
+function idb(){return new Promise((res,rej)=>{try{const r=indexedDB.open('jp-geo',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}})}
+async function idbGet(k){const db=await idb();return new Promise((res,rej)=>{const q=db.transaction('kv').objectStore('kv').get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)})}
+async function idbPut(k,v){const db=await idb();return new Promise((res,rej)=>{const t=db.transaction('kv','readwrite');t.objectStore('kv').put(v,k);t.oncomplete=()=>res();t.onerror=()=>rej(t.error)})}
+async function loadCommunes(force){
+ try{if(!force){const c=await idbGet('communes');if(c&&c.length&&(c[0].length>4||!navigator.onLine)){COM=c.map(x=>[x[0],x[1],x[2],x[3],norm(x[0]),x[4]||0]);comState='ok';return}}}catch(e){}
+ if(!navigator.onLine){comState='absent';return}
+ comState='chargement';
+ try{const r=await fetch('https://geo.api.gouv.fr/communes?fields=nom,codeDepartement,centre,population&format=json');
+  const j=await r.json();const arr=j.filter(c=>c.centre&&c.centre.coordinates).map(c=>[c.nom,c.codeDepartement,+c.centre.coordinates[1].toFixed(4),+c.centre.coordinates[0].toFixed(4),c.population||0]);
+  if(arr.length<1000)throw 0;await idbPut('communes',arr).catch(()=>{});
+  COM=arr.map(x=>[x[0],x[1],x[2],x[3],norm(x[0]),x[4]||0]);comState='ok'}catch(e){comState='erreur'}
+ if(['set','data'].includes(view))render()}
+/* ================== aires d'autoroute & lieux rattachés ================== */
+let AIR=[],airState='absent',BIG=10000;const aKey=a=>norm(a[0])+'|'+norm(a[3])+'|'+a[4];const aRef=a=>a[7]||(S.airRef||{})[aKey(a)]||'';const airRow=x=>[x[0],x[1],x[2],x[3],x[4],x[5],norm(x[0]),x[6]||''];
+const aireCore=k=>k.replace(/^(aire|aires) (de service |de repos )?(de |d |du |des )?(la |le |l |les )?/,'');
+let GRID=null,BIGL=null;function comIndex(){if(GRID&&GRID.n===COM.length)return;GRID={n:COM.length};BIGL=[];for(const x of COM){const k=Math.round(x[2]*4)+','+Math.round(x[3]*4);(GRID[k]=GRID[k]||[]).push(x);if(x[5]>=BIG)BIGL.push(x)}}
+function aireCommune(n,la,lo){comIndex();const k=' '+norm(n)+' ';let c=null,cd=1e9;const gy=Math.round(la*4),gx=Math.round(lo*4);
+ for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++)for(const x of (GRID[(gy+i)+','+(gx+j)]||[])){const d=dist(la,lo,x[2],x[3]);if(d<cd){cd=d;c=x}}
+ let big=null;for(const x of BIGL)if(k.includes(' '+x[4]+' ')&&dist(la,lo,x[2],x[3])<40&&(!big||x[5]>big[5]))big=x;
+ const r=big||c;return r&&cd<30?[r[0],r[1],big?1:0]:null}
+async function loadAires(force){
+ try{if(!force){const a=await idbGet('aires');if(a&&a.length){AIR=a.map(airRow);airState='ok';return}}}catch(e){}
+ if(!navigator.onLine){airState='absent';if(view==='data')render();return}
+ airState='chargement';if(view==='data')render();
+ try{if(!COM.length||!COM[0][5])await loadCommunes(true);if(!COM.length)throw 0;
+  const q='[out:json][timeout:300];area["ISO3166-1"="FR"][admin_level=2]->.fr;nwr["highway"~"^(services|rest_area)$"]["name"](area.fr)->.a;foreach.a->.x(.x out center tags;way(around.x:400)["highway"="motorway"]["ref"];out tags;);';
+  const r=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:'data='+encodeURIComponent(q)});const j=await r.json();
+  const seen=new Map(),arr=[];let cur=null;for(const e of j.elements||[]){const t=e.tags||{};
+   if(e.type==='way'&&t.highway==='motorway'){if(cur&&!cur[6])cur[6]=String(t.ref).split(';')[0].replace(/\s+/g,'');continue}
+   cur=null;const la=e.lat??(e.center&&e.center.lat),lo=e.lon??(e.center&&e.center.lon),n=t.name;if(la==null||!n)continue;
+   const c=aireCommune(n,la,lo);if(!c)continue;const k=norm(n)+'|'+c[0]+'|'+c[1];if(seen.has(k)){cur=seen.get(k);continue}cur=[n,+la.toFixed(4),+lo.toFixed(4),c[0],c[1],c[2],''];seen.set(k,cur);arr.push(cur)}
+  if(arr.length<100)throw 0;await idbPut('aires',arr).catch(()=>{});AIR=arr.map(airRow);airState='ok'}catch(e){airState='erreur'}
+ if(view==='data')render()}
+function resolveAlias(n){const k=norm(n);if(!k)return null;
+ const a=(S.aliases||[]).find(x=>norm(x.n)===k);if(a)return {p:{...a.to},via:a.n,src:'alias'};
+ const isA=/^aires? /.test(k);const kc=isA?aireCore(k):k;
+ let r=AIR.find(x=>x[6]===k)||(isA?AIR.find(x=>aireCore(x[6])===kc):null);
+ if(r)return {p:{n:r[3],d:r[4],p:'F'},via:r[0],src:'air',big:r[5],la:r[1],lo:r[2]};return null}
+async function fixAire(p){if(!p||!p.n)return p;const r=resolveAlias(p.n);
+ if(r){if(r.src==='air'&&!r.big&&navigator.onLine){try{const ctl=new AbortController();setTimeout(()=>ctl.abort(),4000);
+   const j=await (await fetch('https://geo.api.gouv.fr/communes?lat='+r.la+'&lon='+r.lo+'&fields=nom,codeDepartement',{signal:ctl.signal})).json();
+   if(j&&j[0]){r.p={n:j[0].nom,d:j[0].codeDepartement,p:'F'};(S.aliases=S.aliases||[]).push({n:r.via,to:r.p});save()}}catch(e){}}
+  return r.p}
+ if(!/^aires? /.test(norm(p.n)))return p;
+ return new Promise(res=>{sheet(`<h3>${esc(p.n)}</h3><p>Dans quelle commune se trouve cette aire ? L'appli s'en souviendra.</p>${placeHTML('ax',{d:p.d,p:p.p},false)}
+ <div class="acts"><button class="btn" id="axn">Garder tel quel</button><button class="btn pri" id="axo">Valider</button></div>`,(el,close)=>{const m=mountPlace('ax');
+  $('axn').onclick=()=>{close();res(p)};$('axo').onclick=()=>{const c=m.get();if(!c.n)return toast('Indique la commune');(S.aliases=S.aliases||[]).push({n:p.n,to:c});save();close();res(c)}})})}
+const dist=(a1,o1,a2,o2)=>{const x=(o2-o1)*Math.cos((a1+a2)*Math.PI/360),y=a2-a1;return Math.sqrt(x*x+y*y)*111.2};
+function learnPlace(p,co){if(!p||!p.n)return;const k=norm(p.n)+'|'+(p.d||'')+'|'+(p.p||'');
+ let x=S.places.find(q=>norm(q.n)+'|'+(q.d||'')+'|'+(q.p||'')===k);
+ if(!x){x={n:p.n,d:p.d||'',p:p.p||'F',c:0};S.places.push(x)}
+ x.c++;x.t=Date.now();if(co&&co.lat!=null){x.lat=co.lat;x.lon=co.lon}}
+async function resolveGPS(lat,lon){
+ let best=null,bd=1e9;for(const q of S.places)if(q.lat!=null){const d=dist(lat,lon,q.lat,q.lon);if(d<bd){bd=d;best=q}}
+ if(best&&bd<2)return {p:{n:best.n,d:best.d,p:best.p},src:'lieu déjà connu'};
+ if(navigator.onLine){
+  try{const r=await fetch('https://api-adresse.data.gouv.fr/reverse/?lon='+lon+'&lat='+lat+'&type=municipality');const j=await r.json();const f=j.features&&j.features[0];
+   if(f&&f.properties.distance<20000){const pr=f.properties;return {p:{n:pr.city||pr.name,d:String(pr.context||'').split(',')[0].trim()||String(pr.postcode||'').slice(0,2),p:'F'},src:'GPS'}}}catch(e){}
+  try{const r=await fetch('https://nominatim.openstreetmap.org/reverse?format=json&zoom=10&accept-language=fr&lat='+lat+'&lon='+lon);const j=await r.json();const a=j.address||{};
+   const cc=(a.country_code||'').toLowerCase();if(cc&&cc!=='fr'){return {p:{n:a.city||a.town||a.village||a.municipality||a.county||'',d:'',p:ISO2PL[cc]||cc.toUpperCase()},src:'GPS'}}}catch(e){}}
+ if(COM.length){let c=null,cd=1e9;for(const x of COM){const d=dist(lat,lon,x[2],x[3]);if(d<cd){cd=d;c=x}}
+  if(c&&cd<25)return {p:{n:c[0],d:c[1],p:'F'},src:'GPS hors connexion'}}
+ if(best&&bd<30)return {p:{n:best.n,d:best.d,p:best.p},src:'lieu connu le plus proche ('+Math.round(bd)+' km)'};
+ return null}
+function lastArr(){const sv=[...S.services].filter(s=>s.e).sort((a,b)=>b.e-a.e);return sv[0]?sv[0].ep:null}
+function depotPlace(){return S.settings.depotNom?{n:S.settings.depotNom,d:S.settings.depotDep,p:'F'}:null}
+function domPlace(){return S.settings.domDep?{n:'Domicile',d:S.settings.domDep,p:'F'}:null}
+function quickPlaces(){const out=[],seen=new Set();const add=p=>{if(!p||!p.n)return;const k=norm(p.n);if(seen.has(k))return;seen.add(k);out.push(p)};
+ add(lastArr());add(depotPlace());add(domPlace());
+ [...S.places].sort((a,b)=>(b.t||0)-(a.t||0)).slice(0,6).forEach(add);return out.slice(0,7)}
+
+/* ================== composant lieu ================== */
+let _dv=null,_dvn=-1;function depVis(){if(_dvn===S.places.length&&_dv)return _dv;_dv={};for(const p of S.places)if(p.d)_dv[p.d]=(_dv[p.d]||0)+(p.c||1);_dvn=S.places.length;return _dv}
+const dedA=ex=>{const m=new Map();for(const x of ex){const k=norm(x.via)+'|'+x.n+'|'+x.d;const o=m.get(k);if(!o)m.set(k,x);else if(!o.ref&&x.ref)o.ref=x.ref}return [...m.values()]};
+const xs=k=>(' '+k+' ').replace(/ ste /g,' sainte ').replace(/ st /g,' saint ').trim();
+let GPOS=null;// {la,lo,t,com}
+function nearestCom(la,lo){comIndex();let c=null,cd=1e9;const gy=Math.round(la*4),gx=Math.round(lo*4);
+ for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++)for(const x of (GRID[(gy+i)+','+(gx+j)]||[])){const d=dist(la,lo,x[2],x[3]);if(d<cd){cd=d;c=x}}return c&&cd<30?c:null}
+let gpsWait=null;function startGPS(cb){if(GPOS&&Date.now()-GPOS.t<5*60000){if(!GPOS.com&&COM.length)GPOS.com=nearestCom(GPOS.la,GPOS.lo);cb&&cb(GPOS);return}
+ if(gpsWait){if(cb)gpsWait.push(cb);return}gpsWait=cb?[cb]:[];
+ try{if(!navigator.geolocation){gpsWait=null;return}navigator.geolocation.getCurrentPosition(p=>{const la=p.coords.latitude,lo=p.coords.longitude;GPOS={la,lo,t:Date.now(),com:COM.length?nearestCom(la,lo):null};const w=gpsWait||[];gpsWait=null;w.forEach(f=>{try{f(GPOS)}catch(e){}})},()=>{gpsWait=null},{enableHighAccuracy:false,timeout:12000,maximumAge:180000})}catch(e){gpsWait=null}}
+function comOf(p){if(!p||!p.n||(p.p&&p.p!=='F'))return null;const k=norm(p.n);for(const c of COM)if(c[4]===k&&(!p.d||c[1]===p.d))return c;return null}
+function placeHTML(px,p,gps){p=p||{};return `<div class="chips" id="${px}-c"></div>
+<div class="plrow"><label>Lieu<input id="${px}-n" autocomplete="off" autocorrect="off" value="${esc(p.n||'')}"></label>
+<label>Dép.<input id="${px}-d" inputmode="numeric" maxlength="3" value="${esc(p.d||'')}"></label>
+<label>Pays<input id="${px}-p" maxlength="3" autocapitalize="characters" value="${esc(p.p||'F')}"></label></div>
+<div id="${px}-ar"></div><div class="chips" id="${px}-gp" style="margin:6px 0 0"></div><div class="chips" id="${px}-alt" style="margin:6px 0 0"></div><div class="sugg" id="${px}-s"></div>
+${gps?`<div class="row" style="margin-top:8px"><button type="button" class="btn sm" id="${px}-g">Position GPS</button><span class="muted" id="${px}-gs"></span></div>`:''}`}
+function mountPlace(px,opt={}){const st={co:null,typed:false,aire:false};const N=$(px+'-n'),Dd=$(px+'-d'),Pp=$(px+'-p'),SG=$(px+'-s'),ALT=$(px+'-alt'),GP=$(px+'-gp');
+ let auto=true;const set=p=>{const ar=$(px+'-ar');if(ar)ar.innerHTML='';N.value=p.n||'';Dd.value=p.d||'';Pp.value=p.p||'F';SG.innerHTML='';ALT.innerHTML='';GP.innerHTML='';auto=true;hl()};
+ Dd.addEventListener('input',()=>{auto=false;ALT.innerHTML='';st.typed=true});
+ const get=()=>({n:N.value.trim(),d:Dd.value.trim().toUpperCase(),p:(Pp.value.trim()||'F').toUpperCase()});
+ const qp=quickPlaces();
+ const hl=()=>{const n=norm(N.value);$(px+'-c').querySelectorAll('.chip[data-i]').forEach(b=>b.classList.toggle('on',norm(qp[+b.dataset.i].n)===n));const ab=$(px+'-aire');if(ab)ab.classList.toggle('on',st.aire)};
+ $(px+'-c').innerHTML=`<button type="button" class="chip" id="${px}-aire">Aire</button>`+qp.map((p,i)=>`<button type="button" class="chip" data-i="${i}">${esc(p.n)}${p.d?' '+esc(p.d):''}</button>`).join('');
+ $(px+'-c').onclick=e=>{if(e.target.id===px+'-aire'){st.aire=!st.aire;N.value='';Dd.value='';SG.innerHTML='';ALT.innerHTML='';N.placeholder=st.aire?'Nom de l\'aire (ex. bouterne)':'';hl();N.focus();return}
+  const b=e.target.closest('.chip[data-i]');if(b){st.aire=false;N.placeholder='';set(qp[+b.dataset.i]);st.co=null}};
+ let found=[];
+ const rank=()=>{const g=GPOS;if(g&&!g.com&&COM.length)g.com=nearestCom(g.la,g.lo);const gd=g&&g.com?g.com[1]:null;return {gd,g}};
+ const search=()=>{const raw=norm(N.value);const q=xs(raw);ALT.innerHTML='';if(q.length<(st.aire?1:2)){SG.innerHTML='';found=[];return}
+  found=[];const seen=new Set();const dv=depVis();const {gd,g}=rank();
+  const dd=c=>g?dist(g.la,g.lo,c[2],c[3]):0;
+  if(st.aire){const qc=aireCore('aire '+q+' ').trim();const ex=[];
+   for(const a of (S.aliases||[])){const k=xs(norm(a.n));if(/^aires? /.test(k)?aireCore(k).startsWith(qc):k.startsWith(qc))ex.push({...a.to,via:a.n,_d:0})}
+   const ar=AIR.filter(a=>aireCore(a[6]).startsWith(qc)||a[6].split(' ').includes(qc));
+   ar.sort((a,b)=>g?(dist(g.la,g.lo,a[1],a[2])-dist(g.la,g.lo,b[1],b[2])):0);
+   for(const a of ar.slice(0,8))ex.push({n:a[3],d:a[4],p:'F',via:a[0],ref:aRef(a),ak:aKey(a)});
+   found=dedA(ex).slice(0,9)}
+  else{
+   const isA=/^aires?( |$)/.test(q),qc=isA?aireCore(q+' ').trim():'';
+   const skp=p=>{const ex=xs(norm(p.n))===q;if(!g)return ex?2:0;const c=comOf(p);const nr=c?dist(g.la,g.lo,c[2],c[3])<100:p.d===gd;return (ex&&nr?3:0)+(nr?2:0)+(ex?1:0)};
+   const kp=S.places.filter(p=>xs(norm(p.n)).startsWith(q)).sort((a,b)=>(skp(b)-skp(a))||((b.c||0)-(a.c||0)));
+   for(const p of kp){found.push(p);seen.add(norm(p.n)+'|'+p.d)}
+   if(!isA){const cm=[];for(const c of COM)if(xs(c[4]).startsWith(q)&&!seen.has(c[4]+'|'+c[1]))cm.push(c);
+    const sc=c=>{const ex=xs(c[4])===q;if(!g)return ex?2:0;const nr=dd(c)<100||c[1]===gd;return (ex&&nr?3:0)+(nr?2:0)+(ex?1:0)};
+    cm.sort((a,b)=>(sc(b)-sc(a))||(g?dd(a)-dd(b):0)||((dv[b[1]]||0)-(dv[a[1]]||0))||((b[5]||0)-(a[5]||0)));
+    for(const c of cm.slice(0,8))found.push({n:c[0],d:c[1],p:'F'})}
+   if(q.length>=3){const ex=[];
+    if(isA&&qc){for(const a of (S.aliases||[]))if(aireCore(norm(a.n)).startsWith(qc))ex.push({...a.to,via:a.n});const ar=AIR.filter(a=>aireCore(a[6]).startsWith(qc));if(g)ar.sort((a,b)=>dist(g.la,g.lo,a[1],a[2])-dist(g.la,g.lo,b[1],b[2]));for(const a of ar.slice(0,6))ex.push({n:a[3],d:a[4],p:'F',via:a[0],ref:aRef(a),ak:aKey(a)})}
+    else if(!isA){for(const a of (S.aliases||[]))if(xs(norm(a.n)).startsWith(q))ex.push({...a.to,via:a.n})}
+    const exu=dedA(ex);found=[...exu.slice(0,5),...found].slice(0,9)}
+   // département automatique
+   const exm=[];const sx=new Set();for(const f of found){if(f.via)continue;const k=(f.p||'F')+'|'+(f.d||'');if(xs(norm(f.n))===q&&!sx.has(k)){sx.add(k);exm.push(f)}}
+   const lab=f=>(f.p&&f.p!=='F')?f.p:f.d+(DEPN[depNorm(f.d)]?' · '+DEPN[depNorm(f.d)][1]:'');
+   if(exm.length&&(auto||!Dd.value)){const f0=exm[0];Dd.value=f0.p&&f0.p!=='F'?'':(f0.d||'');Pp.value=f0.p||'F';auto=true;
+    if(exm.length>1)ALT.innerHTML=`<span class="muted" style="font-size:13px;align-self:center">Autre :</span>`+exm.slice(1,6).map(f=>`<button type="button" class="chip" data-d="${esc(f.p&&f.p!=='F'?'':f.d)}" data-p="${esc(f.p||'F')}">${esc(lab(f))}</button>`).join('')}
+   else if(!exm.length&&auto){Dd.value='';Pp.value='F'}}
+  SG.innerHTML=found.map((p,i)=>`<button type="button" data-i="${i}">${p.via?'<b>'+esc(p.via)+'</b>'+(p.ref?' · '+esc(p.ref):'')+' → '+esc(plStr(p)):esc(plStr(p))}</button>`).join('')};
+ N.oninput=()=>{st.typed=true;GP.innerHTML='';hl();st.co=null;search()};
+ SG.onclick=e=>{const b=e.target.closest('button');if(b){const f=found[+b.dataset.i];st.aire=false;N.placeholder='';set({n:f.n,d:f.d,p:f.p});
+  if(f.via&&f.ak&&!f.ref){$(px+'-ar').innerHTML=`<div class="row" style="margin-top:6px"><span class="muted" style="font-size:13px">${esc(f.via)} · autoroute :</span><input id="${px}-arv" placeholder="A…" autocapitalize="characters" style="width:90px;min-height:36px;padding:6px 8px;margin:0"></div>`;
+   $(px+'-arv').oninput=e2=>{const v=e2.target.value.trim().toUpperCase().replace(/\s+/g,'');S.airRef=S.airRef||{};if(v)S.airRef[f.ak]=v;else delete S.airRef[f.ak];save()}}}};
+ ALT.onclick=e=>{const b=e.target.closest('[data-d]');if(!b)return;Dd.value=b.dataset.d;Pp.value=b.dataset.p||'F';ALT.querySelectorAll('[data-d]').forEach(x=>x.classList.toggle('on',x===b))};
+ // GPS en arrière-plan : ne remplit que si rien n'a été touché, sinon simple suggestion discrète
+ const onPos=gp=>{if(!$(px+'-n'))return;st.co={lat:gp.la,lon:gp.lo};
+  resolveGPS(gp.la,gp.lo).then(r=>{if(!r||!$(px+'-n'))return;const cur=get();
+   if(norm(cur.n)===norm(r.p.n)&&(cur.d||'')===(r.p.d||''))return;
+   if(opt.fill&&!st.typed&&!cur.n){set(r.p);st.co={lat:gp.la,lon:gp.lo};return}
+   if(opt.nochip||(document.activeElement===N&&N.value))return;
+   GP.innerHTML=`<button type="button" class="chip" id="${px}-gpb">Près de toi : <b>${esc(plStr(r.p))}</b></button>`;
+   $(px+'-gpb').onclick=()=>{set(r.p);st.co={lat:gp.la,lon:gp.lo}}})};
+ if(opt.bg)startGPS(onPos);
+ const g=$(px+'-g');
+ if(g)g.onclick=()=>{const gs=$(px+'-gs');gs.textContent='Recherche de la position…';GPOS=null;
+  try{navigator.geolocation.getCurrentPosition(async pos=>{const la=pos.coords.latitude,lo=pos.coords.longitude;GPOS={la,lo,t:Date.now(),com:COM.length?nearestCom(la,lo):null};
+   const r=await resolveGPS(la,lo);if(!$(px+'-gs'))return;if(r){set(r.p);st.co={lat:la,lon:lo};$(px+'-gs').textContent='Trouvé ('+r.src+')'}else $(px+'-gs').textContent='Lieu non trouvé, choisis ou tape-le'},
+   err=>{if($(px+'-gs'))$(px+'-gs').textContent=err.code===1?'GPS refusé, choisis ou tape le lieu':'GPS indisponible, choisis ou tape le lieu'},{enableHighAccuracy:false,timeout:10000,maximumAge:120000})}catch(e){gs.textContent='GPS indisponible ici'}};
+ hl();return {get,set,co:()=>st.co}}
+async function farCheck(p,ms){const g=GPOS;if(!g||!p||!p.n||Date.now()-g.t>30*60000)return p;if(ms&&Date.now()-ms>HR)return p;const c=comOf(p);if(!c)return p;const d=dist(g.la,g.lo,c[2],c[3]);if(d<=100)return p;
+ const k=c[4];let alt=null,ad=1e9;for(const x of COM)if((x[4]===k||x[4].startsWith(k+' '))&&x!==c){const dd=dist(g.la,g.lo,x[2],x[3]);if(dd<ad){ad=dd;alt=x}}
+ const btn=[{t:'Garder '+esc(plStr(p)),v:'keep',c:'pri'}];if(alt&&ad<=100)btn.unshift({t:'Mettre '+esc(alt[0])+' ('+alt[1]+')',v:'alt',c:'dark'});btn.push({t:'Corriger',v:'fix'});
+ const v=await ask(esc(plStr(p))+' est à '+Math.round(d)+' km de toi','',btn);if(v==='alt')return {n:alt[0],d:alt[1],p:'F'};if(v==='fix')return null;return p}
+
+/* ================== feuilles / dialogues ================== */
+function sheet(html,onMount){const ov=document.createElement('div');ov.className='ov';ov.innerHTML=`<div class="sheet" role="dialog">${html}</div>`;
+ document.body.appendChild(ov);const close=()=>ov.remove();ov.addEventListener('click',e=>{if(e.target===ov)close()});
+ onMount&&onMount(ov.firstChild,close);return close}
+function ask(title,text,buttons){return new Promise(res=>{sheet(`<h3>${title}</h3>${text?`<p>${text}</p>`:''}<div class="acts" style="flex-direction:column">${buttons.map((b,i)=>`<button class="btn full ${b.c||''}" data-i="${i}">${b.t}</button>`).join('')}</div>`,
+ (el,close)=>{el.querySelector('.acts').onclick=e=>{const b=e.target.closest('button');if(b){close();res(buttons[+b.dataset.i].v)}}})})}
+let toastT;function toast(msg,undo){document.querySelectorAll('.toast').forEach(t=>t.remove());clearTimeout(toastT);
+ const t=document.createElement('div');t.className='toast';t.innerHTML=`<span>${msg}</span>${undo?'<button>Annuler</button>':''}`;document.body.appendChild(t);
+ if(undo)t.querySelector('button').onclick=()=>{undo();t.remove()};toastT=setTimeout(()=>t.remove(),undo?6000:2600)}
+const dtHTML=(px,ms)=>`<div class="dtb"><label class="dtd">Date<input type="date" id="${px}-dt" value="${dk(ms)}"></label><label class="dtt">Heure<input type="time" id="${px}-tm" value="${fT(ms)}"></label></div>`;
+const dtGet=px=>{const d=$(px+'-dt').value,t=$(px+'-tm').value;return d&&t?inputsToMs(d,t):null};
+
+/* ================== contrôle absences ================== */
+async function absCheck(ms){const k=dk(ms),a=absOn(k);if(!a)return true;
+ if(a.type==='FORMATION'){const v=await ask('Journée marquée en FORMATION',fK(k)+' est marqué en formation. Enregistrer quand même les heures ?',[{t:'Valider',v:true,c:'pri'},{t:'Annuler',v:false}]);return v}
+ const v=await ask('Attention : journée en '+ABS[a.type].toLowerCase(),fK(k)+' est marqué en '+a.type+'. Tu travailles vraiment ce jour-là ?',[{t:'Oui, je travaille',v:true,c:'pri'},{t:'Non, annuler',v:false}]);
+ if(v){removeAbsDay(a,k);save()}return v}
+
+/* ================== DÉPART ================== */
+function openDepart(){const A=analyze();const now=Date.now();
+ sheet(`<h3>Départ</h3>${A.open?`<div class="banner y">Un départ est déjà en cours depuis ${fT(A.open.s)} (${fD(A.open.s)}). Valider remplacera cette heure de départ.</div>`:''}
+ ${dtHTML('d',now)}<div class="fg"><label>Lieu de départ</label>${placeHTML('dp',A.open?A.open.sp:(lastArr()||depotPlace()||{}),false)}</div><div class="fg"><label>Kilométrage (facultatif)<input id="dkm" type="number" inputmode="numeric" value="${esc(A.open&&A.open.kmS||'')}"></label></div>
+ <div class="acts"><button class="btn" id="dx">Annuler</button><button class="btn pri" id="dok">Valider</button></div>`,(el,close)=>{
+ const pre=A.open?A.open.sp:(lastArr()||depotPlace()||{});const pl=mountPlace('dp',{bg:true,nochip:true});$('dx').onclick=close;
+ $('dok').onclick=async()=>{const ms=dtGet('d');if(!ms)return toast('Date ou heure manquante');let p=await fixAire(pl.get());if(!(norm(p.n)===norm(pre.n)&&(p.d||'')===(pre.d||''))){p=await farCheck(p,ms);if(!p)return}
+  if(!(await absCheck(ms)))return;
+  const A2=analyze();
+  const kmv=$('dkm').value.trim();if(A2.open){A2.open.s=ms;A2.open.sp=p;A2.open.kmS=kmv}else{
+   if(A2.last&&A2.last.e&&ms<A2.last.e)return toast('Ce départ est avant ta dernière arrivée ('+fT(A2.last.e)+')');
+   S.services.push({id:uid(),s:ms,sp:p,e:null,ep:null,kmS:kmv})}
+  learnPlace(p);save();close();render();toast('Départ enregistré à '+fT(ms));
+  const A3=analyze();const pr=A3.rests.find(r=>r.done&&r.b&&r.b.s===ms);
+  if(pr&&pr.weekly&&!wkStatus(pr))askWeekend(pr)}})}
+async function askWeekend(r){const p=r.a.ep;const btns=[{t:'Week-end payé',v:'paye',c:'pri'},{t:'Rassemblement',v:'rass',c:'dark'},{t:'Non payé (autre)',v:'np'}];
+ if(!S.settings.depotNom)btns.push({t:'Dépôt',v:'depot'});if(!S.settings.domDep)btns.push({t:'Domicile',v:'dom'});
+ btns.push({t:'Plus tard',v:null});
+ const v=await ask('Week-end à '+esc(plStr(p)),'Repos de '+fDur(r.gap)+' du '+fD(r.from)+' au '+fD(r.to)+'.',btns);
+ if(v){S.wk[r.a.id]=v;save();render()}}
+
+/* ================== ARRIVÉE ================== */
+function openArrivee(pre){const A=analyze();const now=typeof pre==='number'?pre:Date.now();const op=A.open;
+ sheet(`<h3>Arrivée</h3>${op?`<p class="muted">Départ à ${fT(op.s)} (${fD(op.s)}) · ${esc(plStr(op.sp))}</p>`:`<div class="banner y">Aucun départ en cours : indique aussi le départ.</div>${dtHTML('ad',now-10*HR)}<div class="fg"><label>Lieu de départ</label>${placeHTML('ap',lastArr()||depotPlace()||{},false)}</div><h3 style="margin-top:14px">Arrivée</h3>`}
+ ${dtHTML('a',now)}<div class="fg"><label>Lieu d'arrivée</label>${placeHTML('aa',{},true)}</div><div class="fg"><label>Kilométrage (facultatif)<input id="akm" type="number" inputmode="numeric" value="${esc(''||'')}"></label></div>
+ <div class="acts"><button class="btn" id="ax">Annuler</button><button class="btn pri" id="aok">Valider</button></div>`,(el,close)=>{
+ const pl=mountPlace('aa',{bg:true,fill:true});const pd=op?null:mountPlace('ap');$('ax').onclick=close;
+ $('aok').onclick=async()=>{const ms=dtGet('a');if(!ms)return toast('Date ou heure manquante');let p=await fixAire(pl.get());p=await farCheck(p,ms);if(!p)return;
+  let svc=analyze().open;
+  if(!svc){const ds=dtGet('ad');if(!ds)return toast('Heure de départ manquante');if(ds>=ms)return toast('Le départ doit être avant l\'arrivée');
+   if(!(await absCheck(ds)))return;svc={id:uid(),s:ds,sp:await fixAire(pd.get()),e:null,ep:null};S.services.push(svc);learnPlace(svc.sp)}
+  else{if(ms<=svc.s)return toast('L\'arrivée doit être après le départ ('+fT(svc.s)+')');if(dk(ms)!==dk(svc.s)&&absOn(dk(ms))&&!(await absCheck(ms)))return}
+  svc.e=ms;svc.ep=p;svc.kmE=$('akm').value.trim();learnPlace(p,pl.co());save();close();render();toast('Arrivée enregistrée à '+fT(ms))}})}
+
+/* ================== calcul de coupure ================== */
+function openCoupure(){const now=Date.now();
+ sheet(`<h3>Calcul de coupure</h3><label>Fin de coupure</label>${dtHTML('cf',now)}
+ <label style="margin-top:10px">Durée de la coupure</label><div class="g2" style="margin-top:4px"><select id="cf-h">${Array.from({length:73},(_,i)=>`<option value="${i}" ${i===11?'selected':''}>${i} h</option>`).join('')}</select><select id="cf-m">${Array.from({length:60},(_,i)=>`<option value="${i}">${pad(i)} min</option>`).join('')}</select></div>
+ <div class="card" style="margin-top:12px"><div class="muted">Début de coupure</div><div class="big-time" id="cf-r">—</div></div>
+ <div class="acts" style="flex-direction:column"><button class="btn pri full" id="cf-ok">Enregistrer comme arrivée</button><button class="btn full" id="cf-x">Fermer</button></div>`,(el,close)=>{
+ let res=null;const upd=()=>{const f=dtGet('cf');if(!f){$('cf-r').textContent='—';res=null;return}res=f-(+$('cf-h').value*HR+ +$('cf-m').value*60000);$('cf-r').textContent=fD(res)+' à '+fT(res)};
+ ['cf-dt','cf-tm','cf-h','cf-m'].forEach(id=>{$(id).addEventListener('input',upd);$(id).addEventListener('change',upd)});upd();
+ $('cf-x').onclick=close;$('cf-ok').onclick=()=>{if(!res)return;close();openArrivee(res)}})}
+
+/* ================== édition d'une journée ================== */
+function openService(s){const isNew=!s;s=s||{s:Date.now()-10*HR,sp:lastArr()||{},e:Date.now(),ep:{}};
+ sheet(`<h3>${isNew?'Ajouter une journée':'Modifier la journée'}</h3><h2 style="margin-top:0">Départ</h2>${dtHTML('sd',s.s)}${placeHTML('ssp',s.sp,false)}<div class="fg"><label>Kilométrage (facultatif)<input id="skmS" type="number" inputmode="numeric" value="${esc(s.kmS||'')}"></label></div>
+ <h2>Arrivée</h2><label class="check"><input type="checkbox" id="sne" ${s.e?'':'checked'}> Pas encore arrivé</label><div id="sarr">${dtHTML('se',s.e||Date.now())}${placeHTML('sep',s.ep||{},false)}<div class="fg"><label>Kilométrage (facultatif)<input id="skmE" type="number" inputmode="numeric" value="${esc(s.kmE||'')}"></label></div></div>
+ <div class="acts">${isNew?'':'<button class="btn red" id="sdel">Supprimer</button>'}<button class="btn" id="sx">Annuler</button><button class="btn pri" id="sok">Enregistrer</button></div>`,(el,close)=>{
+ const a=mountPlace('ssp'),b=mountPlace('sep');const tg=()=>$('sarr').style.display=$('sne').checked?'none':'';$('sne').onchange=tg;tg();$('sx').onclick=close;
+ if(!isNew)$('sdel').onclick=async()=>{if(await ask('Supprimer cette journée ?','',[{t:'Supprimer',v:true,c:'red'},{t:'Annuler',v:false}])){S.services=S.services.filter(x=>x.id!==s.id);save();close();render()}};
+ $('sok').onclick=async()=>{const st=dtGet('sd');if(!st)return toast('Départ incomplet');let en=null;
+  if(!$('sne').checked){en=dtGet('se');if(!en||en<=st)return toast('L\'arrivée doit être après le départ')}
+  const o=isNew?{id:uid()}:S.services.find(x=>x.id===s.id);const spv=await fixAire(a.get()),epv=en?await fixAire(b.get()):null;Object.assign(o,{s:st,sp:spv,e:en,ep:epv,kmS:$('skmS').value.trim(),kmE:en?$('skmE').value.trim():''});
+  if(isNew)S.services.push(o);learnPlace(o.sp);if(o.ep)learnPlace(o.ep);save();close();render()}})}
+
+/* ================== dérogation conduite ================== */
+function addDrv(){const t=Date.now();S.drv.push(t);save();render();toast('Dérogation conduite 10 h ajoutée',()=>{S.drv=S.drv.filter(x=>x!==t);save();render()})}
+async function rmDrv(){const A=analyze();const mine=S.drv.filter(t=>t>=A.cycleStart).sort((a,b)=>b-a);if(!mine.length)return;
+ if(await ask('Retirer une dérogation conduite ?','Dernière cochée le '+fD(mine[0])+' à '+fT(mine[0])+'.',[{t:'Retirer',v:true,c:'red'},{t:'Annuler',v:false}])){S.drv=S.drv.filter(x=>x!==mine[0]);save();render()}}
+
+/* ================== kilométrages mensuels ================== */
+const mkey=(y,m)=>y+'-'+pad(m+1);
+const kmGet=(y,m)=>(S.km||{})[mkey(y,m)]||{};
+function isLastWorkDay(k){const m=k.slice(0,7);for(let j=addDays(k,1);j.slice(0,7)===m;j=addDays(j,1))if(!isGrey(j)&&!absOn(j))return false;return true}
+function openKm(y,m){const k=kmGet(y,m),N=new Date(y,m+1,0).getDate();
+ sheet(`<h3>Kilométrages ${Mois(m).toLowerCase()} ${y}</h3><div class="g2"><label>KMS au 1er<input id="k1" type="number" inputmode="numeric" value="${esc(k.start||'')}"></label><label>KMS au ${N}<input id="k2" type="number" inputmode="numeric" value="${esc(k.end||'')}"></label></div>
+ <div class="acts"><button class="btn" id="kx">Annuler</button><button class="btn pri" id="kok">Enregistrer</button></div>`,(el,close)=>{$('kx').onclick=close;
+ $('kok').onclick=()=>{S.km=S.km||{};S.km[mkey(y,m)]={start:$('k1').value.trim(),end:$('k2').value.trim()};save();close();render();toast('Kilométrages enregistrés')}})}
+function kmReminder(A){const now=A.now,t=dk(now),d=new Date(now),y=d.getFullYear(),m=d.getMonth();
+ const inM=A.sv.filter(s=>{const x=new Date(s.s);return x.getFullYear()===y&&x.getMonth()===m});
+ if(!inM.some(s=>dk(s.s)===t))return null;const k=kmGet(y,m);
+ if(!k.start&&dk(inM[0].s)===t)return 'du 1er';
+ if(!k.end&&isLastWorkDay(t))return 'de fin de mois';return null}
+
+/* ================== repos hebdo (encadré) ================== */
+function weeklyHTML(A){const ws=A.weeklies.filter(r=>r.done);const lastW=ws[ws.length-1];const cur=A.weeklies.find(r=>!r.done);
+ let h='';
+ if(cur){const need=45*HR+A.openDebts.reduce((s,d)=>s+d.h,0);h+=`<div class="banner g"><div><b>Repos hebdo en cours</b> depuis ${fD(cur.from)} ${fT(cur.from)} : ${fDur(cur.gap)}<br>${cur.gap>=need?'Repos normal atteint'+(A.openDebts.length?' et dette rattrapée':''):'45 h'+(A.openDebts.length?' + rattrapage':'')+' atteintes le '+fD(cur.from+need)+' à '+fT(cur.from+need)}</div></div>`}
+ if(lastW){const red=lastW.gap<45*HR;h+=`<div class="card"><div class="muted">Dernier repos hebdo</div><div class="big-time">${fDur(lastW.gap)}</div><div>${fD(lastW.from)} ${fT(lastW.from)} → ${fD(lastW.to)} ${fT(lastW.to)}</div><div style="margin-top:6px"><span class="chipst ${red?'pend':'paye'}">${red?'RÉDUIT':'NORMAL'}</span></div></div>`}
+ else h+='<p class="muted">Aucun repos hebdomadaire enregistré pour l\'instant.</p>';
+ if(A.openDebts.length){h+=A.openDebts.map(d=>{const late=A.now>d.deadline;return `<div class="card"><div class="muted">À rattraper (week-end du ${fD(d.r.from)})</div><div class="big-time ${late?'alert':''}">${fDur(d.h)}</div>
+  <div>Avant le <b>${fD(d.deadline)}</b>${late?' <span class="alert">— dépassé</span>':''}</div>
+  <div class="muted" style="margin-top:6px">Soit un repos journalier d'au moins <b>${fDur(11*HR+d.h)}</b>, soit un week-end d'au moins <b>${fDur(45*HR+d.h)}</b>, d'un seul bloc.</div></div>`}).join('')}
+ else if(lastW)h+='<div class="banner g">Aucune heure à rattraper.</div>';
+ const ok=!A.openDebts.length;h+=`<div class="card row"><span class="sp">Prochain week-end réduit autorisé</span><b style="font-size:20px;color:${ok?'var(--go)':'var(--red)'}">${ok?'OUI':'NON'}</b></div>`;
+ return h}
+function openWeekly(){sheet(`<h3>Repos hebdomadaire</h3>${weeklyHTML(analyze())}<div class="acts"><button class="btn full" id="wx">Fermer</button></div>`,(el,c)=>$('wx').onclick=c)}
+
+/* ================== ACCUEIL ================== */
+function homeHTML(){const A=analyze(),now=A.now;let h='';
+ const d=new Date();h+=`<div class="row" style="justify-content:space-between;flex-wrap:nowrap"><h1>${JN[d.getDay()].replace('.','')} ${d.getDate()} ${Mois(d.getMonth()).toLowerCase()}</h1><button class="chip" id="hcp" style="flex:none">⏱ Coupure</button></div>`;
+ if(!storageOK)h+=`<div class="banner r">Stockage indisponible ici : les saisies ne seront pas conservées.</div>`;
+ A.alerts.forEach(a=>h+=`<div class="banner r">${esc(a)}</div>`);
+ if(A.pendingWk.length)h+=`<div class="banner y"><span class="sp">Week-end à ${esc(plStr(A.pendingWk[A.pendingWk.length-1].a.ep))} : payé ou rassemblement ?</span><button class="btn sm" id="hwk">Répondre</button></div>`;
+ const up=S.absences.filter(a=>a.to>=dk(now)).sort((a,b)=>a.from<b.from?-1:1)[0];
+ if(up){const t=dk(now),tm=addDays(t,1);if(up.from<=t)h+=`<div class="banner g">${ABS[up.type]} aujourd'hui, jusqu'au ${fK(up.to)}</div>`;
+  else if(up.from<=addDays(t,3))h+=`<div class="banner g">${ABS[up.type]} ${up.from===tm?'demain':'le '+fK(up.from)} → jusqu'au ${fK(up.to)}</div>`}
+
+ const kr=kmReminder(A);if(kr)h+=`<div class="banner y"><span class="sp">Kilométrage ${kr} à saisir</span><button class="btn sm" id="hkm">Saisir</button></div>`;
+ // état
+ h+='<div class="card">';
+ if(A.open){const amp=now-A.open.s;h+=`<div class="muted">En service depuis ${fT(A.open.s)}${dk(A.open.s)!==dk(now)?' ('+fD(A.open.s)+')':''} · ${esc(plStr(A.open.sp))}</div>
+  <div class="tiles" style="margin-top:8px"><div class="amp ${amp>13*HR?'warn':''}"><span>Amplitude 13 h</span><b>${fT(A.open.s+13*HR)}</b></div><div class="amp ${amp>15*HR?'warn':''}"><span>Amplitude 15 h</span><b>${fT(A.open.s+15*HR)}</b></div></div>
+  <div class="muted" style="margin-top:8px">Amplitude actuelle : <b>${fDur(amp)}</b></div>
+  `}
+ else if(A.last&&A.last.e){const g=now-A.last.e;
+  const cr=A.rests.find(r=>!r.done);if(cr&&cr.weekly)h+=`<div class="muted">Arrivé le ${fD(A.last.e)} à ${fT(A.last.e)} · ${esc(plStr(A.last.ep))}</div><div style="margin-top:6px"><b>Repos hebdo en cours : ${fDur(g)}</b></div>`;
+  else h+=`<div class="muted">Arrivé à ${fT(A.last.e)}${dk(A.last.e)!==dk(now)?' ('+fD(A.last.e)+')':''} · ${esc(plStr(A.last.ep))}</div>
+  <div class="tiles" style="margin-top:8px"><div class="amp"><span>Repos 11 h</span><b>${fT(A.last.e+11*HR)}</b></div><div class="amp"><span>Repos 9 h</span><b>${fT(A.last.e+9*HR)}</b></div></div>
+  ${A.openDebts.length?`<div class="muted" style="margin-top:8px">Pour rattraper ${fDur(A.openDebts[0].h)} : repartir après <b>${fT(A.last.e+11*HR+A.openDebts[0].h)}</b></div>`:''}`}
+ else h+=`<div><b>Bienvenue.</b> Appuie sur DÉPART pour commencer ta journée.</div>`;
+ h+='</div>';
+ h+=`<div class="big2"><button class="bigb bdep" id="bdep">DÉPART<small>${A.open?'en cours':'commencer'}</small></button><button class="bigb barr" id="barr">ARRIVÉE<small>${A.open?'terminer':'—'}</small></button></div>`;
+ const bx=(n,max,on,cls)=>Array.from({length:max},(_,i)=>`<button class="box ${i<on?'on':''} ${cls}" data-i="${i}" aria-label="case ${i+1}"></button>`).join('');
+ h+=`<div class="card"><div class="ctr"><div><b>Conduite 10 h</b><div class="muted">${A.drv}/2 utilisées</div></div><div class="boxes" id="drvb">${bx(0,2,A.drv,'')}</div></div>
+ <div class="ctr"><div><b>Repos réduits</b><div class="muted">${A.reduced}/3 · calcul automatique</div></div><div class="boxes">${bx(0,3,A.reduced,'auto')}</div></div></div>`;
+ h+=`<button class="btn full" id="hweek" style="justify-content:space-between;display:flex;align-items:center">Repos hebdo${A.openDebts.length?`<span class="badge">${fDur(A.openDebts.reduce((s,d)=>s+d.h,0))}</span>`:''}<span class="sp"></span><span class="muted">${A.openDebts.length?'à rattraper':'à jour'} ›</span></button>`;
+ return h}
+function homeMount(){$('bdep').onclick=openDepart;$('barr').onclick=()=>openArrivee();$('hcp').onclick=openCoupure;$('hweek').onclick=openWeekly;
+ $('drvb').onclick=e=>{const b=e.target.closest('.box');if(!b)return;b.classList.contains('on')?rmDrv():addDrv()};
+ const km=$('hkm');if(km)km.onclick=()=>{const d=new Date();openKm(d.getFullYear(),d.getMonth())};
+ const w=$('hwk');if(w)w.onclick=()=>{const A=analyze();askWeekend(A.pendingWk[A.pendingWk.length-1])};
+ }
+
+/* ================== PLEINS & LAVAGES ================== */
+let pm=new Date();pm=new Date(pm.getFullYear(),pm.getMonth(),1);
+const isDepot=p=>{const n=norm(p&&p.n);return n==='depot'||(S.settings.depotNom&&n===norm(S.settings.depotNom))};
+function pleinDesc(x){const t=[];if(x.g.on)t.push('Gasoil '+(x.g.v?x.g.v+' L':'?'));if(x.n.on)t.push('GNR'+(x.n.v?' '+x.n.v+' L':''));if(x.a.on)t.push('AdBlue'+(x.a.v?' '+x.a.v+' L':''));return t.join(' · ')}
+function pleinsHTML(){const y=pm.getFullYear(),m=pm.getMonth();const inM=t=>{const d=new Date(t);return d.getFullYear()===y&&d.getMonth()===m};
+ const P=S.pleins.filter(x=>inM(x.t)).sort((a,b)=>b.t-a.t),L=S.lavages.filter(x=>inM(x.t)).sort((a,b)=>b.t-a.t);
+ return `<h1>Pleins & lavages</h1><div class="big2"><button class="bigb bdep" id="np" style="min-height:96px">+ PLEIN</button><button class="bigb barr" id="nl" style="min-height:96px">+ LAVAGE</button></div>
+ <div class="mnav"><button class="btn sm" id="pp">‹</button><b>${Mois(m)} ${y}</b><button class="btn sm" id="pn">›</button></div>
+ <button class="btn full" id="pconso">Consommation</button>
+ <h2>Pleins (${P.length})</h2><ul class="list" id="lp">${P.map(x=>`<li data-id="${x.id}"><div class="t">${fD(x.t)}<small>${esc(pleinDesc(x))}${x.g.on?(x.full===false?' (partiel)':' (complet)'):''} — ${esc(x.immat||'')}${x.km?' — '+esc(x.km)+' km':''} — ${esc(plStr(x.lieu))}</small></div><span class="muted">›</span></li>`).join('')||'<li class="muted">Aucun plein ce mois-ci</li>'}</ul>
+ <h2>Lavages (${L.length})</h2><ul class="list" id="ll">${L.map(x=>`<li data-id="${x.id}"><div class="t">${fD(x.t)}<small>${[x.ext?'Extérieur':'',x.int?'Intérieur':''].filter(Boolean).join(' + ')} — ${esc(x.tr||'')} / ${esc(x.re||'')}</small></div><span class="muted">›</span></li>`).join('')||'<li class="muted">Aucun lavage ce mois-ci</li>'}</ul>`}
+function pleinsMount(){$('np').onclick=()=>openPlein();$('pconso').onclick=openConso;$('nl').onclick=()=>openLavage();
+ $('pp').onclick=()=>{pm=new Date(pm.getFullYear(),pm.getMonth()-1,1);render()};$('pn').onclick=()=>{pm=new Date(pm.getFullYear(),pm.getMonth()+1,1);render()};
+ $('lp').onclick=e=>{const li=e.target.closest('li[data-id]');if(li)openPlein(S.pleins.find(x=>x.id===li.dataset.id))};
+ $('ll').onclick=e=>{const li=e.target.closest('li[data-id]');if(li)openLavage(S.lavages.find(x=>x.id===li.dataset.id))}}
+/* ================== consommation ================== */
+const num=v=>{const x=parseFloat(String(v??'').replace(',','.').replace(/\s/g,''));return isFinite(x)?x:null};
+const f1=x=>x.toFixed(1).replace('.',',');const fkm=x=>Math.round(x).toLocaleString('fr-FR');
+function consoChain(P){const seg=[];let base=null,acc=0,broken=false,brokeWhy='';
+ for(const x of P){const v=num(x.g.v),km=num(x.km),full=x.full!==false;
+  if(v==null){broken=true;brokeWhy='volume manquant';if(full&&km!=null){if(base)seg.push({from:base,to:x,ok:false,why:brokeWhy});base=x;acc=0;broken=false}continue}
+  if(!base){if(full&&km!=null){base=x;acc=0;broken=false}continue}
+  acc+=v;if(!full||km==null)continue;
+  const d=km-num(base.km);
+  if(broken)seg.push({from:base,to:x,ok:false,why:brokeWhy});else if(d<=0)seg.push({from:base,to:x,ok:false,why:'kilométrage incohérent'});
+  else seg.push({from:base,to:x,ok:true,km:d,l:acc,c:acc/d*100});
+  base=x;acc=0;broken=false}
+ return {seg,base}}
+const gasP=x=>x.g&&x.g.on;
+function consoNorm(segs){const F=S.consoFlags||{};const pts=[...(S.consoRef||[]).filter(r=>r.km>0&&r.l>0).map(r=>({l:r.l,km:r.km}))];
+ for(const s of segs)if(s.ok&&(F[s.to.id]==='ok'||(F[s.to.id]!=='excl'&&s.c>=20&&s.c<=40)))pts.push(s);
+ if(pts.length>=10){const L=pts.reduce((a,p)=>a+p.l,0),K=pts.reduce((a,p)=>a+p.km,0),m=L/K*100;return {lo:m*0.7,hi:m*1.3,m,n:pts.length,learned:true}}
+ return {lo:20,hi:40,n:pts.length,learned:false}}
+function consoTruck(tr){const P=S.pleins.filter(x=>x.immat===tr.immat&&x.t>=tr.since&&(!tr.until||x.t<=tr.until)&&gasP(x)).sort((a,b)=>a.t-b.t||(num(a.km)||0)-(num(b.km)||0));
+ const {seg,base}=consoChain(P);const N=consoNorm(seg);const F=S.consoFlags||{};
+ for(const s of seg)if(s.ok){const out=s.c<N.lo||s.c>N.hi;s.flag=F[s.to.id]||null;s.out=out;s.use=s.flag==='ok'||(!out&&s.flag!=='excl')}
+ const ok=seg.filter(s=>s.ok&&s.use);const L=ok.reduce((a,s)=>a+s.l,0),K=ok.reduce((a,s)=>a+s.km,0);
+ const months={};for(const s of ok){const a=new Date(s.from.t),b=new Date(s.to.t);if(a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()){const k=a.getFullYear()+'-'+pad(a.getMonth()+1);const o=months[k]=months[k]||{l:0,km:0};o.l+=s.l;o.km+=s.km}}
+ return {seg,L,K,avg:K?L/K*100:null,months,base,N}}
+function otherTrucks(){const mine=new Set((S.trucks||[]).map(t=>t.immat));const g={};
+ for(const x of S.pleins)if(x.immat&&!mine.has(x.immat)&&gasP(x))(g[x.immat]=g[x.immat]||[]).push(x);
+ return Object.keys(g).map(im=>({im,seg:consoChain(g[im].sort((a,b)=>a.t-b.t)).seg.filter(s=>s.ok)})).filter(o=>o.seg.length)}
+async function consoCheck(pl){const tr=(S.trucks||[]).find(t=>t.immat===pl.immat&&pl.t>=(t.service?inputsToMs(t.service,'00:00'):t.since)&&(!t.until||pl.t<=t.until));if(!tr)return;
+ const cap=(tr.tanks||[]).reduce((a,v)=>a+(num(v)||0),0),vv=num(pl.g&&pl.g.on&&pl.g.v);
+ if(cap&&vv&&vv>cap*1.05){const v=await ask('⚠️ Volume hors normes',`${f1(vv)} L de gasoil, alors que tes réservoirs font ${fkm(cap)} L au total. Erreur de saisie ?`,[{t:'Corriger',v:'fix',c:'pri'},{t:"C'est correct",v:0}]);if(v==='fix'){openPlein(pl);return}}
+ if(pl.full===false||pl.t<tr.since)return;
+ const r=consoTruck(tr);const s=r.seg.find(x=>x.to.id===pl.id);if(!s||!s.ok||!s.out||s.flag)return;
+ const v=await ask('⚠️ Valeur hors normes : '+f1(s.c)+' L/100',`${fD(s.from.t)} → ${fD(s.to.t)} · ${fkm(s.km)} km · ${f1(s.l)} L<br>Normal : entre ${f1(r.N.lo)} et ${f1(r.N.hi)} L/100. As-tu oublié un plein ?`,[{t:"J'ai oublié un plein",v:'excl',c:'dark'},{t:"C'est correct",v:'ok',c:'pri'},{t:'Décider plus tard',v:null}]);
+ if(v){(S.consoFlags=S.consoFlags||{})[pl.id]=v;save()}}
+function openConso(){const T=(S.trucks||[]).slice().reverse();
+ const segLi=(s,i)=>`<li ${s.ok&&s.out?`data-f="${s.to.id}"`:''}><div class="t">${fD(s.from.t)} → ${fD(s.to.t)}<small>${s.ok?fkm(s.km)+' km · '+f1(s.l)+' L'+(s.out?(s.flag==='ok'?' · <b>validée</b>':s.flag==='excl'?' · <b>exclue (plein oublié)</b>':' · <span style="color:#d97a00;font-weight:700">valeur hors normes : non comptée</span>'):''):'<span class="alert">'+s.why+' : non calculé</span>'}</small></div><b style="${s.ok&&s.out&&!s.use?'color:#d97a00':''}">${s.ok?f1(s.c):'—'}</b></li>`;
+ const blk=(tr,i)=>{const r=consoTruck(tr);const cur=i===0&&!tr.until;
+  return `<div class="card"><div class="row"><b class="sp">${esc(tr.immat)}${cur?'':' (ancien)'}</b><span class="muted">depuis le ${fD(tr.since)}${tr.until?' → '+fD(tr.until):''}</span></div>
+  <div class="amp" style="margin-top:8px"><span>Moyenne ${cur?'depuis toujours':'du camion'}</span><b>${r.avg!=null?f1(r.avg)+' L/100':'—'}</b></div>
+  ${r.K?`<div class="muted" style="margin-top:4px">${fkm(r.K)} km · ${f1(r.L)} L</div>`:`<div class="muted" style="margin-top:6px">${r.base?'Point de départ : plein complet du '+fD(r.base.t)+' à '+fkm(num(r.base.km))+' km. Le calcul commencera au prochain plein complet.':'En attente d\'un premier plein complet avec kilométrage.'}</div>`}
+  <div class="muted" style="margin-top:4px">Plage normale : ${f1(r.N.lo)} – ${f1(r.N.hi)} L/100 ${r.N.learned?'(apprise sur tes pleins)':'(par défaut, apprentissage '+r.N.n+'/10)'}</div>
+  ${Object.keys(r.months).length?`<h2>Par mois</h2><ul class="list">${Object.keys(r.months).sort().reverse().map(k=>{const o=r.months[k];const [yy,mm]=k.split('-');return `<li><div class="t">${Mois(+mm-1)} ${yy}<small>${fkm(o.km)} km · ${f1(o.l)} L</small></div><b>${f1(o.l/o.km*100)}</b></li>`}).join('')}</ul>`:''}
+  ${r.seg.length?`<h2>Par plein</h2><ul class="list cseg">${r.seg.slice().reverse().map(segLi).join('')}</ul>`:''}</div>`};
+ const O=otherTrucks();
+ sheet(`<h3>Consommation (L/100 km)</h3>${T.length?T.map(blk).join(''):'<p class="muted">Renseigne ton immatriculation tracteur dans Réglages.</p>'}
+ ${O.length?`<h2>Autres camions</h2>${O.map(o=>`<div class="card"><b>${esc(o.im)}</b><ul class="list">${o.seg.slice().reverse().map(s=>`<li><div class="t">${fD(s.from.t)} → ${fD(s.to.t)}<small>${fkm(s.km)} km · ${f1(s.l)} L</small></div><b>${f1(s.c)}</b></li>`).join('')}</ul></div>`).join('')}`:''}
+ ${T[0]?`<div class="fg"><label>Point de départ des calculs (${esc(T[0].immat)})<input type="date" id="cs-d" value="${dk(T[0].since)}"></label></div>`:''}
+ <div class="acts"><button class="btn full" id="cs-x">Fermer</button></div>`,(el,close)=>{$('cs-x').onclick=close;const d=$('cs-d');if(d)d.onchange=()=>{if(!d.value)return;const tr=S.trucks[S.trucks.length-1];tr.since=inputsToMs(d.value,'00:00');save();close();openConso()};
+  el.addEventListener('click',async e=>{const li=e.target.closest('li[data-f]');if(!li)return;const v=await ask('Valeur hors normes','Que fait-on de cette période ?',[{t:'La compter (c\'est correct)',v:'ok',c:'pri'},{t:'L\'exclure (plein oublié)',v:'excl',c:'dark'},{t:'Annuler',v:null}]);
+   if(v){(S.consoFlags=S.consoFlags||{})[li.dataset.f]=v;save();close();openConso()}})})}
+function openPlein(x){const isNew=!x;const lastP=[...S.pleins].sort((a,b)=>b.t-a.t)[0];
+ x=x||{t:Date.now(),g:{on:true,v:''},n:{on:false,v:''},a:{on:false,v:''},immat:curImmat()||(lastP&&lastP.immat)||'',lieu:{n:'Dépôt',d:'',p:''}};
+ const st={g:x.g.on,n:x.n.on,a:x.a.on,full:x.full!==false};
+ sheet(`<h3>${isNew?'Nouveau plein':'Modifier le plein'}</h3><label>Type de plein</label><div class="tog" id="pty" style="margin-top:6px"><button type="button" data-k="g">Gasoil</button><button type="button" data-k="n">GNR</button><button type="button" data-k="a">AdBlue</button></div>
+ <div class="g2 fg"><label>Immatriculation<input id="pim" autocapitalize="characters" value="${esc(x.immat)}"></label><label>Kilométrage<input id="pkm" type="number" inputmode="numeric" value="${esc(x.km||'')}"></label></div>
+ <div class="fg"><label>Lieu<input id="pl-n" autocomplete="off" value="${esc(x.lieu&&x.lieu.n||'')}"></label></div>
+ <div class="fg" id="pvol"></div><div class="fg"><label>Date<input type="date" id="pt-dt" value="${dk(x.t)}"></label></div>
+ <div class="acts">${isNew?'':'<button class="btn red" id="pdel">Supprimer</button>'}<button class="btn" id="px">Annuler</button><button class="btn pri" id="pok">Valider</button></div>`,(el,close)=>{
+ const pl={get:()=>({n:$('pl-n').value.trim(),d:'',p:''})};const vols={g:x.g.v,n:x.n.v,a:x.a.v};
+ const keep=()=>el.querySelectorAll('#pvol input').forEach(i=>vols[i.dataset.k]=i.value);
+ const draw=()=>{el.querySelectorAll('#pty button').forEach(b=>b.classList.toggle('on',st[b.dataset.k]));const dep=isDepot(pl.get());
+  const f=(k,lab)=>`<label>${lab} (litres)<input type="number" inputmode="decimal" step="0.01" data-k="${k}" value="${esc(vols[k]||'')}"></label>`;
+  let h='';if(st.g)h+=f('g','Volume gasoil')+`<div><label>Plein complet</label><div class="seg" id="pfull" style="margin-top:4px"><button type="button" data-v="1" class="${st.full?'on':''}">OUI</button><button type="button" data-v="0" class="${st.full?'':'on'}">NON</button></div></div>`;if(!dep){if(st.n)h+=f('n','Volume GNR');if(st.a)h+=f('a','Volume AdBlue')}
+  $('pvol').innerHTML=h?`<div class="g2">${h}</div>`:'';const pf=$('pfull');if(pf)pf.onclick=e=>{const b=e.target.closest('button');if(b){keep();st.full=b.dataset.v==='1';draw()}}};
+ $('pty').onclick=e=>{const b=e.target.closest('button');if(!b)return;keep();st[b.dataset.k]=!st[b.dataset.k];draw()};
+ el.addEventListener('input',e=>{if(e.target.id==='pl-n'){keep();draw()}});
+ draw();$('px').onclick=close;
+ if(!isNew)$('pdel').onclick=async()=>{if(await ask('Supprimer ce plein ?','',[{t:'Supprimer',v:true,c:'red'},{t:'Annuler',v:false}])){S.pleins=S.pleins.filter(q=>q.id!==x.id);save();close();render()}};
+ $('pok').onclick=()=>{keep();if(!st.g&&!st.n&&!st.a)return toast('Choisis au moins un type de plein');const dv=$('pt-dt').value;if(!dv)return toast('Date manquante');const t=inputsToMs(dv,'12:00');
+  const lieu=pl.get(),dep=isDepot(lieu);
+  const o={id:x.id||uid(),t,immat:$('pim').value.trim().toUpperCase(),km:$('pkm').value.trim(),full:st.full,lieu,
+   g:{on:st.g,v:st.g?vols.g:''},n:{on:st.n,v:st.n&&!dep?vols.n:''},a:{on:st.a,v:st.a&&!dep?vols.a:''}};
+  if(isNew)S.pleins.push(o);else Object.assign(S.pleins.find(q=>q.id===x.id),o);save();close();render();toast('Plein enregistré');consoCheck(o).then(()=>render())}})}
+function openLavage(x){const isNew=!x;const lastL=[...S.lavages].sort((a,b)=>b.t-a.t)[0];
+ x=x||{t:Date.now(),tr:curImmat()||(lastL&&lastL.tr)||'',re:(lastL&&lastL.re)||S.settings.remorque||'',ext:true,int:false};
+ sheet(`<h3>${isNew?'Nouveau lavage':'Modifier le lavage'}</h3><div class="g2"><label>Tracteur<input id="ltr" autocapitalize="characters" value="${esc(x.tr)}"></label><label>Remorque<input id="lre" autocapitalize="characters" value="${esc(x.re)}"></label></div>
+ <label class="check"><input type="checkbox" id="lext" ${x.ext?'checked':''}> Lavage extérieur</label><label class="check"><input type="checkbox" id="lint" ${x.int?'checked':''}> Lavage intérieur</label>
+ <div class="fg"><label>Date<input type="date" id="lt-dt" value="${dk(x.t)}"></label></div><div class="acts">${isNew?'':'<button class="btn red" id="ldel">Supprimer</button>'}<button class="btn" id="lx">Annuler</button><button class="btn pri" id="lok">Valider</button></div>`,(el,close)=>{
+ $('lx').onclick=close;
+ if(!isNew)$('ldel').onclick=async()=>{if(await ask('Supprimer ce lavage ?','',[{t:'Supprimer',v:true,c:'red'},{t:'Annuler',v:false}])){S.lavages=S.lavages.filter(q=>q.id!==x.id);save();close();render()}};
+ $('lok').onclick=()=>{const dv=$('lt-dt').value;if(!dv)return toast('Date manquante');const t=inputsToMs(dv,'12:00');if(!$('lext').checked&&!$('lint').checked)return toast('Coche extérieur et/ou intérieur');
+  const o={id:x.id||uid(),t,tr:$('ltr').value.trim().toUpperCase(),re:$('lre').value.trim().toUpperCase(),ext:$('lext').checked,int:$('lint').checked};
+  if(isNew)S.lavages.push(o);else Object.assign(S.lavages.find(q=>q.id===x.id),o);save();close();render();toast('Lavage enregistré')}})}
+
+/* ================== PLANNING ================== */
+const WKL={paye:'Payé',rass:'Rassemblement',np:'Non payé',depot:'Dépôt',dom:'Domicile'};
+function planningHTML(){const A=analyze();const today=dk(A.now);
+ const ws=[...A.weeklies].reverse().slice(0,26);
+ const up=S.absences.filter(a=>a.to>=today).sort((a,b)=>a.from<b.from?-1:1),past=S.absences.filter(a=>a.to<today).sort((a,b)=>a.from<b.from?1:-1).slice(0,20);
+ const ab=a=>`<li data-id="${a.id}"><div class="t"><b>${ABS[a.type]}</b><small>${a.from===a.to?fK(a.from):'du '+fK(a.from)+' au '+fK(a.to)}</small></div><span class="muted">›</span></li>`;
+ return `<h1>Planning</h1><h2>Absences</h2><button class="btn pri full" id="nab">+ Absence (congé, formation, AT)</button>
+ <h2 class="muted" style="font-size:14px">À venir</h2><ul class="list" id="lab1">${up.map(ab).join('')||'<li class="muted">Aucune absence prévue</li>'}</ul>
+ <h2>Week-ends</h2><ul class="list" id="lwk">${ws.map(r=>{const s=wkStatus(r),auto=wkAuto(r);return `<li data-id="${r.a.id}"><div class="t">${fD(r.from)} → ${r.done?fD(r.to):'en cours'}<small>${esc(plStr(r.a.ep))} · ${fDur(r.gap)}${r.gap<45*HR&&r.done?' · réduit':''}</small></div><span class="chipst ${s||'pend'}">${s?WKL[s]:'À préciser'}</span>${auto?'':'<span class="muted">›</span>'}</li>`}).join('')||'<li class="muted">Aucun week-end détecté pour l\'instant</li>'}</ul>
+ ${past.length?`<h2 class="muted" style="font-size:14px">Absences passées</h2><ul class="list" id="lab2">${past.map(ab).join('')}</ul>`:''}`}
+function planningMount(){$('nab').onclick=()=>openAbs();
+ const oa=e=>{const li=e.target.closest('li[data-id]');if(li)openAbs(S.absences.find(a=>a.id===li.dataset.id))};$('lab1').onclick=oa;if($('lab2'))$('lab2').onclick=oa;
+ $('lwk').onclick=async e=>{const li=e.target.closest('li[data-id]');if(!li)return;const r=analyze().weeklies.find(x=>x.a.id===li.dataset.id);if(!r||wkAuto(r))return;
+  const v=await ask('Week-end à '+esc(plStr(r.a.ep)),fDur(r.gap),[...(wkStatus(r)==='rass'?[{t:'Fiche du rassemblement',v:'fiche',c:'dark'}]:[]),{t:'Week-end payé',v:'paye',c:'pri'},{t:'Rassemblement',v:'rass',c:'dark'},{t:'Non payé (autre)',v:'np'},{t:'Dépôt',v:'depot'},{t:'Domicile',v:'dom'},{t:'Fermer',v:0}]);
+  if(v==='fiche')return openRass(r.a.id);if(v){S.wk[r.a.id]=v;save();render()}}}
+function openAbs(a){const isNew=!a;const t=dk(Date.now());a=a||{type:'CONGÉ',from:t,to:t};let ty=a.type;
+ sheet(`<h3>${isNew?'Nouvelle absence':'Modifier l\'absence'}</h3><div class="seg" id="aty">${Object.keys(ABS).map(k=>`<button type="button" data-k="${k}">${ABS[k]}</button>`).join('')}</div>
+ <div class="g2 fg"><label>Du<input type="date" id="af" value="${a.from}"></label><label>Au (inclus)<input type="date" id="at" value="${a.to}"></label></div>
+ <p class="muted">Pour une seule journée, mets la même date.</p>
+ <div class="acts">${isNew?'':'<button class="btn red" id="adel">Supprimer</button>'}<button class="btn" id="abx">Annuler</button><button class="btn pri" id="abok">Enregistrer</button></div>`,(el,close)=>{
+ const hl=()=>el.querySelectorAll('#aty button').forEach(b=>b.classList.toggle('on',b.dataset.k===ty));hl();
+ $('aty').onclick=e=>{const b=e.target.closest('button');if(b){ty=b.dataset.k;hl()}};
+ $('af').onchange=()=>{if($('at').value<$('af').value)$('at').value=$('af').value};$('abx').onclick=close;
+ if(!isNew)$('adel').onclick=async()=>{if(await ask('Supprimer cette absence ?','',[{t:'Supprimer',v:true,c:'red'},{t:'Annuler',v:false}])){S.absences=S.absences.filter(x=>x.id!==a.id);save();close();render()}};
+ $('abok').onclick=()=>{const f=$('af').value,to=$('at').value;if(!f||!to||to<f)return toast('Dates incorrectes');
+  const ov=S.absences.find(x=>x.id!==a.id&&x.from<=to&&f<=x.to);if(ov)return toast('Chevauche une autre absence ('+ABS[ov.type]+' du '+fK(ov.from)+')');
+  if(isNew)S.absences.push({id:uid(),type:ty,from:f,to});else Object.assign(S.absences.find(x=>x.id===a.id),{type:ty,from:f,to});
+  save();close();render();toast(ABS[ty]+' enregistré')}})}
+
+/* ================== moteur de mise en page (aperçu SVG + PDF) ================== */
+const cv=document.createElement('canvas').getContext('2d');
+function tw(s,size,f){cv.font=(f==='B'?'bold ':f==='I'?'italic ':'')+size+'px Helvetica, Arial, sans-serif';return cv.measureText(String(s)).width}
+function fit(s,maxW,size,f,min=4.5){s=String(s??'');while(size>min&&tw(s,size,f)>maxW)size-=.25;if(tw(s,size,f)>maxW){while(s.length>1&&tw(s+'…',size,f)>maxW)s=s.slice(0,-1);s+='…'}return {s,size}}
+const R=(x,y,w,h,fill,stroke,lw)=>({k:'r',x,y,w,h,fill,stroke,lw});
+const Ln=(x1,y1,x2,y2,c,lw)=>({k:'l',x1,y1,x2,y2,c,lw});
+function cellT(ops,s,x,y,w,h,o={}){if(s==null||s==='')return;const p=o.pad??3,f=o.f||'R';const r=fit(s,w-2*p,o.size||9,f,o.min||4.5);
+ const W=tw(r.s,r.size,f);const tx=o.align==='c'?x+(w-W)/2:o.align==='r'?x+w-p-W:x+p;
+ ops.push({k:'t',s:r.s,x:tx,y:y+h/2+r.size*.35,size:r.size,f,c:o.c||'#1a1a1a'})}
+const PW=595.28,PH=841.89;
+const CL={line:'#aeb9c6',head:'#e3e8ee',grey:'#e9edf2',ink:'#1a1a1a',tag:'#4e5d6e',mark:'#8f9db0'};
+
+function wkDayMap(y,m){const A=analyze();const map={};
+ for(const r of A.weeklies){const s=wkStatus(r);if(s!=='paye'&&s!=='rass')continue;
+  for(let k=dk(r.from);k<=dk(r.to);k=addDays(k,1))map[k]=s}
+ return map}
+function layoutJ(y,m){const M=20,ops=[];const N=new Date(y,m+1,0).getDate();
+ const title='FRAIS '+MOIS[m]+' '+y+(S.settings.nom?' — '+S.settings.nom.toUpperCase():'');
+ const t=fit(title,PW-2*M,15,'B');ops.push({k:'t',s:t.s,x:(PW-tw(t.s,t.size,'B'))/2,y:M+14,size:t.size,f:'B',c:'#111'});
+ const top=M+28,hh=16,rh=(PH-M-top-hh)/N;
+ const base=[38,48,128,38,34,50,128,38,34],sum=base.reduce((a,b)=>a+b),cw=base.map(w=>w*(PW-2*M)/sum),cx=[M];cw.forEach((w,i)=>cx.push(cx[i]+w));
+ const heads=['DATE','H. DÉPART','LIEU DÉPART','DÉP. D.','PAYS D.','H. ARRIVÉE','LIEU ARRIVÉE','DÉP. A.','PAYS A.'];
+ ops.push(R(M,top,PW-2*M,hh,CL.head));
+ const fs=Math.max(6,Math.min(10,rh*.46));
+ const svByDay={};for(const s of [...S.services].sort((a,b)=>a.s-b.s)){(svByDay[dk(s.s)]=svByDay[dk(s.s)]||[]).push(s)}
+ const wk=wkDayMap(y,m);
+ const days=[];for(let d=1;d<=N;d++){const k=y+'-'+pad(m+1)+'-'+pad(d);days.push({d,k,y0:top+hh+(d-1)*rh,grey:isGrey(k),sv:svByDay[k]||[],abs:absOn(k),wk:wk[k]})}
+ days.forEach(D=>{if(D.grey)ops.push(R(M,D.y0,PW-2*M,rh,CL.grey))});
+ for(let i=0;i<=N;i++)ops.push(Ln(M,top+hh+i*rh,PW-M,top+hh+i*rh,CL.line,.5));
+ ops.push(Ln(M,top,PW-M,top,CL.line,.5));cx.forEach(x=>ops.push(Ln(x,top,x,PH-M,CL.line,.5)));
+ heads.forEach((h,i)=>cellT(ops,h,cx[i],top,cw[i],hh,{size:7.5,align:'c',c:'#2b3440',pad:2}));
+ // absences
+ const handled=new Set();const bx=cx[1],bw=PW-M-cx[1];
+ const weeks={};days.forEach(D=>{const dt=kDate(D.k);const mon=addDays(D.k,-((dt.getDay()+6)%7));(weeks[mon]=weeks[mon]||[]).push(D)});
+ for(const w of Object.values(weeks)){const ng=w.filter(D=>!D.grey);if(!ng.length)continue;
+  if(ng.every(D=>D.abs&&!D.sv.length)&&ng.length>=3){const a=ng[0],b=ng[ng.length-1];const by=a.y0,bh=b.y0+rh-a.y0;
+   w.filter(D=>D.y0>=a.y0&&D.y0<=b.y0).forEach(D=>{handled.add(D.k);ops.push(R(bx+.3,D.y0-.3,bw-.6,rh+.6,D.grey?CL.grey:'#ffffff'))});
+   ops.push(R(bx,by,bw,bh,null,CL.line,.6));
+   const label=a.abs.type.split('').join(' ');const L=Math.sqrt(bw*bw+bh*bh),ang=Math.atan2(bh,bw);
+   let size=Math.min(bh*.9,(L*.62)/Math.max(1,tw(label,1,'B')),.55*bw*bh/L);size=Math.max(size,8);
+   const W=tw(label,size,'B');const cxm=bx+bw/2,cym=by+bh/2;const c=Math.cos(ang),s=Math.sin(ang);
+   const x0=cxm-(W/2)*c+(size*.35)*s,y0=cym+(W/2)*s+(size*.35)*c;
+   ops.push({k:'t',s:label,x:x0,y:y0,size,f:'B',c:CL.mark,a:-ang*180/Math.PI})}}
+ days.forEach(D=>{if(handled.has(D.k)||!D.abs||D.sv.length||D.grey)return;handled.add(D.k);
+  ops.push(R(bx+.3,D.y0+.3,bw-.6,rh-.6,'#ffffff'));ops.push(R(bx,D.y0,bw,rh,null,CL.line,.6));
+  cellT(ops,D.abs.type.split('').join(' '),bx,D.y0,bw,rh,{size:fs*1.05,f:'B',align:'c',c:CL.tag})});
+ // lignes
+ for(const D of days){const dow=kDate(D.k).getDay();cellT(ops,JL[dow]+D.d,cx[0],D.y0,cw[0],rh,{size:fs,align:'c'});
+  if(handled.has(D.k))continue;
+  if(D.sv.length){const a=D.sv[0],b=D.sv[D.sv.length-1];const sp=a.sp||{},ep=b.e?(b.ep||{}):{};
+   const tags=[];if(D.abs&&D.abs.type==='FORMATION')tags.push('Formation');if(D.wk&&D.grey)tags.push(D.wk==='rass'?'Rassemblement':'WE payé');
+   cellT(ops,fT(a.s),cx[1],D.y0,cw[1],rh,{size:fs,align:'c'});cellT(ops,sp.n,cx[2],D.y0,cw[2],rh,{size:fs});
+   cellT(ops,sp.p==='F'?sp.d:'',cx[3],D.y0,cw[3],rh,{size:fs,align:'c'});cellT(ops,sp.p,cx[4],D.y0,cw[4],rh,{size:fs,align:'c'});
+   if(b.e)cellT(ops,fT(b.e),cx[5],D.y0,cw[5],rh,{size:fs,align:'c'});
+   let lw=cw[6];if(tags.length){const ts=Math.max(4.5,fs*.72),tt=fit(tags.join(' · '),cw[6]*.45,ts,'I');const W=tw(tt.s,tt.size,'I');
+    ops.push({k:'t',s:tt.s,x:cx[6]+cw[6]-3-W,y:D.y0+D.y0*0+rh/2+tt.size*.35,size:tt.size,f:'I',c:CL.tag});lw=cw[6]-W-5}
+   cellT(ops,ep.n,cx[6],D.y0,lw,rh,{size:fs});
+   cellT(ops,ep.p==='F'?ep.d:'',cx[7],D.y0,cw[7],rh,{size:fs,align:'c'});cellT(ops,ep.p,cx[8],D.y0,cw[8],rh,{size:fs,align:'c'})}
+  else if(D.wk){const l=D.wk==='rass'?'Rassemblement':'Week-end payé';cellT(ops,l,cx[2],D.y0,cw[2],rh,{size:fs});cellT(ops,l,cx[6],D.y0,cw[6],rh,{size:fs})}}
+ ops.push(R(M,top,PW-2*M,PH-M-top,null,CL.line,.7));
+ return {W:PW,H:PH,ops}}
+
+function layoutP(y,m){const W=841.89,H=595.28,M=20,ops=[];const inM=t=>{const d=new Date(t);return d.getFullYear()===y&&d.getMonth()===m};
+ const P=S.pleins.filter(x=>inM(x.t)).sort((a,b)=>a.t-b.t),L=S.lavages.filter(x=>inM(x.t)).sort((a,b)=>a.t-b.t);
+ const km=(S.km||{})[y+'-'+pad(m+1)]||{};const K='#1a1a1a';
+ // en-tête
+ const hb=44;ops.push(R(M+170,M,W-2*M-170,hb,null,K,1.2));
+ const soc=S.settings.societe||'';const xs=M+170,ws1=210,ws2=W-2*M-170-ws1-110;
+ ops.push(Ln(xs+ws1,M,xs+ws1,M+hb,K,1.2),Ln(xs+ws1+ws2,M,xs+ws1+ws2,M+hb,K,1.2));
+ cellT(ops,soc,xs,M,ws1,hb,{size:15,f:'B',align:'c'});cellT(ops,'FICHE DE GASOIL ET DE LAVAGE',xs+ws1,M,ws2,hb,{size:12,align:'c'});cellT(ops,'Version : 2',xs+ws1+ws2,M,110,hb,{size:8,align:'c'});
+ cellT(ops,'NOM : '+(S.settings.nom||''),M,M+hb+6,300,18,{size:11,f:'B',pad:0});
+ cellT(ops,MOIS[m]+' '+y,M+300,M+hb+6,W-2*M-600,18,{size:12,f:'B',align:'c'});
+ const ky=M+hb+30,kh=18,kw=(W-2*M)/2;
+ ops.push(R(M,ky,W-2*M,kh,null,K,.8),Ln(M+kw,ky,M+kw,ky+kh,K,.8));
+ const kmS=v=>v?String(v).replace(/\B(?=(\d{3})+(?!\d))/g,' '):'';
+ cellT(ops,'KMS AU 1er :  '+kmS(km.start),M,ky,kw,kh,{size:9.5,f:'B'});cellT(ops,'KMS AU '+new Date(y,m+1,0).getDate()+' :  '+kmS(km.end),M+kw,ky,kw,kh,{size:9.5,f:'B'});
+ // tableau
+ const top=ky+kh+8,g1=15,g2=15;const n=Math.max(15,P.length,L.length);const rh=(H-M-top-g1-g2)/n;
+ const base=[40,62,48,110,44,22,22,44,44,40,62,62,22,22],G=12,sum=base.reduce((a,b)=>a+b),cw=base.map(w=>w*(W-2*M-G)/sum),cx=[M];cw.forEach((w,i)=>cx.push(cx[i]+w+(i===8?G:0)));const fE=cx[9]-G;
+ const span=(a,b)=>[cx[a],(b===8?fE:cx[b+1])-cx[a]];const hseg=(yy,lw)=>ops.push(Ln(M,yy,fE,yy,K,lw),Ln(cx[9],yy,W-M,yy,K,lw));
+ const _span=(a,b)=>[cx[a],cx[b+1]-cx[a]];
+ [[0,6,'GASOIL'],[7,7,'AD BLUE'],[8,8,'FUEL'],[9,13,'LAVAGE']].forEach(([a,b,t])=>{const [x,w]=span(a,b);ops.push(R(x,top,w,g1,'#eceff2'));cellT(ops,t,x,top,w,g1,{size:9,f:'B',align:'c'})});
+ const sub=['DATE','N° TRACTEUR','KM','LIEU','LITRES','OUI','NON','LITRES','LITRES','DATE','N° TRACTEUR','N° SEMI','INT','EXT'];
+ sub.forEach((t,i)=>cellT(ops,t,cx[i],top+g1,cw[i],g2,{size:7,align:'c',pad:1.5}));
+ {const [x,w]=span(5,6);ops.push(R(x,top+g1,w,g2,'#ffffff'));cellT(ops,'PLEIN',x,top+g1,w,g2*.55,{size:6.5,align:'c',pad:1});cellT(ops,'OUI',cx[5],top+g1+g2*.45,cw[5],g2*.55,{size:5.5,align:'c',pad:.5});cellT(ops,'NON',cx[6],top+g1+g2*.45,cw[6],g2*.55,{size:5.5,align:'c',pad:.5});ops.push(Ln(x,top+g1+g2*.5,x+w,top+g1+g2*.5,K,.4),Ln(cx[6],top+g1+g2*.5,cx[6],top+g1+g2,K,.4))}
+ const ty=top+g1+g2;
+ for(let i=0;i<=n;i++)hseg(ty+i*rh,i===0?.8:.5);
+ hseg(top+g1,.5);
+ cx.forEach((x,i)=>{if(i===0||i===9||i===14)return;ops.push(Ln(x,i===6?top+g1+g2*.5:([1,2,3,4,5,10,11,12,13].includes(i)?top+g1:top),x,ty+n*rh,K,.5))});
+ ops.push(R(M,top,fE-M,ty+n*rh-top,null,K,1.3),R(cx[9],top,W-M-cx[9],ty+n*rh-top,null,K,1.3));
+ const fs=Math.max(6,Math.min(10,rh*.45));const dd=t=>{const d=new Date(t);return pad(d.getDate())+'/'+pad(d.getMonth()+1)};
+ const vol=o=>o&&o.on?(o.v?String(o.v).replace('.',','):'X'):'';
+ P.forEach((x,i)=>{const yy=ty+i*rh,c=(j,v,al)=>cellT(ops,v,cx[j],yy,cw[j],rh,{size:fs,align:al||'c'});
+  c(0,dd(x.t));c(1,x.immat);c(2,kmS(x.km));c(3,x.lieu?x.lieu.n+(x.lieu.p&&x.lieu.p!=='F'?' ('+x.lieu.p+')':''):'','l');
+  if(x.g.on){c(4,x.g.v?String(x.g.v).replace('.',','):'?');c(x.full===false?6:5,'X')}c(7,vol(x.a));c(8,vol(x.n))});
+ L.forEach((x,i)=>{const yy=ty+i*rh,c=(j,v)=>cellT(ops,v,cx[j],yy,cw[j],rh,{size:fs,align:'c'});c(9,dd(x.t));c(10,x.tr);c(11,x.re);c(12,x.int?'X':'');c(13,x.ext?'X':'')});
+ return {W,H,ops}}
+function toSVG(Lt){let s=`<svg viewBox="0 0 ${Lt.W} ${Lt.H}" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, sans-serif"><rect width="${Lt.W}" height="${Lt.H}" fill="#fff"/>`;
+ for(const o of Lt.ops){if(o.k==='r')s+=`<rect x="${o.x}" y="${o.y}" width="${o.w}" height="${o.h}" fill="${o.fill||'none'}"${o.stroke?` stroke="${o.stroke}" stroke-width="${o.lw||.5}"`:''}/>`;
+  else if(o.k==='l')s+=`<line x1="${o.x1}" y1="${o.y1}" x2="${o.x2}" y2="${o.y2}" stroke="${o.c}" stroke-width="${o.lw}"/>`;
+  else s+=`<text x="${o.x}" y="${o.y}" font-size="${o.size}"${o.f==='B'?' font-weight="bold"':''}${o.f==='I'?' font-style="italic"':''} fill="${o.c}"${o.a?` transform="rotate(${o.a} ${o.x} ${o.y})"`:''}>${esc(o.s)}</text>`}
+ return s+'</svg>'}
+const WIN={0x20AC:0x80,0x2026:0x85,0x2018:0x91,0x2019:0x92,0x201C:0x93,0x201D:0x94,0x2022:0x95,0x2013:0x96,0x2014:0x97,0x0152:0x8C,0x0153:0x9C,0x0178:0x9F};
+function pdfStr(s){let o='';for(const ch of String(s)){let c=ch.codePointAt(0);if(c>255)c=WIN[c]||63;else if(c>=128&&c<160)c=63;
+ const x=String.fromCharCode(c);o+=(x==='\\'||x==='('||x===')')?'\\'+x:x}return o}
+function toPDF(Lt){const H=Lt.H,n=v=>(+v).toFixed(2);
+ const rgb=h=>{const x=parseInt(h.slice(1),16);return [(x>>16)&255,(x>>8)&255,x&255].map(v=>(v/255).toFixed(3)).join(' ')};
+ let c='';for(const o of Lt.ops){
+  if(o.k==='r'){if(o.fill)c+=`${rgb(o.fill)} rg ${n(o.x)} ${n(H-o.y-o.h)} ${n(o.w)} ${n(o.h)} re f\n`;if(o.stroke)c+=`${rgb(o.stroke)} RG ${n(o.lw||.5)} w ${n(o.x)} ${n(H-o.y-o.h)} ${n(o.w)} ${n(o.h)} re S\n`}
+  else if(o.k==='l')c+=`${rgb(o.c)} RG ${n(o.lw)} w ${n(o.x1)} ${n(H-o.y1)} m ${n(o.x2)} ${n(H-o.y2)} l S\n`;
+  else{const F={R:'F1',B:'F2',I:'F3'}[o.f||'R'];const a=-(o.a||0)*Math.PI/180,cs=Math.cos(a),sn=Math.sin(a);
+   c+=`BT /${F} ${n(o.size)} Tf ${rgb(o.c)} rg ${cs.toFixed(4)} ${sn.toFixed(4)} ${(-sn).toFixed(4)} ${cs.toFixed(4)} ${n(o.x)} ${n(H-o.y)} Tm (${pdfStr(o.s)}) Tj ET\n`}}
+ const font=b=>`<< /Type /Font /Subtype /Type1 /BaseFont /${b} /Encoding /WinAnsiEncoding >>`;
+ const objs=[null,'<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+  `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${n(Lt.W)} ${n(Lt.H)}] /Resources << /Font << /F1 5 0 R /F2 6 0 R /F3 7 0 R >> >> /Contents 4 0 R >>`,
+  `<< /Length ${c.length} >>\nstream\n${c}endstream`,font('Helvetica'),font('Helvetica-Bold'),font('Helvetica-Oblique')];
+ let out='%PDF-1.4\n%âãÏÓ\n';const off=[];
+ for(let i=1;i<objs.length;i++){off[i]=out.length;out+=`${i} 0 obj\n${objs[i]}\nendobj\n`}
+ const xr=out.length;out+=`xref\n0 ${objs.length}\n0000000000 65535 f \n`+off.slice(1).map(o=>String(o).padStart(10,'0')+' 00000 n \n').join('')+`trailer\n<< /Size ${objs.length} /Root 1 0 R >>\nstartxref\n${xr}\n%%EOF`;
+ const b=new Uint8Array(out.length);for(let i=0;i<out.length;i++)b[i]=out.charCodeAt(i)&255;return b}
+
+/* ================== export de fichiers ================== */
+async function exportFile(name,data,mime){const blob=new Blob([data],{type:mime});
+ try{const f=new File([blob],name,{type:mime});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:name});return 'ok'}}catch(e){if(e&&e.name==='AbortError')return 'abort'}
+ try{if(window.claude&&window.claude.use){const dl=await window.claude.use('downloads');if(dl){await dl.save({filename:name,data:blob});return 'ok'}}}catch(e){if(e&&e.code==='declined')return 'abort'}
+ try{const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);return 'ok'}catch(e){return 'fail'}}
+
+/* ================== RÉCAPS ================== */
+let rm=new Date();rm=new Date(rm.getFullYear(),rm.getMonth(),1);let rk='J';
+function recapInfo(y,m){const k=kmGet(y,m),a=num(k.start),b=num(k.end);const out=[];
+ if(a!=null&&b!=null&&b>a)out.push('Kilométrage du mois : <b>'+fkm(b-a)+' km</b>');
+ const tr=(S.trucks||[]).slice().reverse().find(t=>{const s0=new Date(y,m,1).getTime(),s1=new Date(y,m+1,1).getTime();return t.since<s1&&(!t.until||t.until>=s0)});
+ if(tr){const o=consoTruck(tr).months[y+'-'+pad(m+1)];if(o&&o.km)out.push('Consommation moyenne du mois : <b>'+f1(o.l/o.km*100)+' L/100</b> <span style="opacity:.75">('+fkm(o.km)+' km entre pleins fiables)</span>')}
+ return out.length?`<div class="muted" style="font-size:13px;line-height:1.5;margin:8px 2px 0">${out.join('<br>')}</div>`:''}
+function recapsHTML(){const y=rm.getFullYear(),m=rm.getMonth();const Lt=rk==='J'?layoutJ(y,m):layoutP(y,m);
+ const days=[...S.services].filter(s=>{const d=new Date(s.s);return d.getFullYear()===y&&d.getMonth()===m}).sort((a,b)=>a.s-b.s);
+ return `<h1>Récaps</h1><div class="seg" id="rseg"><button data-k="J" class="${rk==='J'?'on':''}">Journées</button><button data-k="P" class="${rk==='P'?'on':''}">Pleins + lavages</button></div>
+ <div class="mnav"><button class="btn sm" id="rp">‹</button><b>${Mois(m)} ${y}</b><button class="btn sm" id="rn">›</button></div>
+ <div class="prev">${toSVG(Lt)}</div>${rk==='P'?recapInfo(y,m):''}<button class="btn pri full" id="rpdf" style="margin-top:12px">Exporter en PDF</button>${rk==='P'?`<button class="btn full" id="rkm" style="margin-top:10px">Kilométrages du mois (1er : ${esc(kmGet(y,m).start||'—')} · fin : ${esc(kmGet(y,m).end||'—')})</button>`:''}
+ ${rk==='J'?`<h2>Journées du mois</h2><button class="btn full" id="radd">+ Ajouter une journée oubliée</button><ul class="list" id="rlist">${days.map(s=>`<li data-id="${s.id}"><div class="t">${fD(s.s)} · ${fT(s.s)} → ${s.e?fT(s.e):'en cours'}<small>${esc(plStr(s.sp))} → ${esc(plStr(s.ep))}</small></div><span class="muted">›</span></li>`).join('')||'<li class="muted">Aucune journée ce mois-ci</li>'}</ul>`:''}`}
+function recapsMount(){$('rseg').onclick=e=>{const b=e.target.closest('button');if(b){rk=b.dataset.k;render()}};
+ $('rp').onclick=()=>{rm=new Date(rm.getFullYear(),rm.getMonth()-1,1);render()};$('rn').onclick=()=>{rm=new Date(rm.getFullYear(),rm.getMonth()+1,1);render()};
+ $('rpdf').onclick=async()=>{const y=rm.getFullYear(),m=rm.getMonth();const Lt=rk==='J'?layoutJ(y,m):layoutP(y,m);
+  const nm=(rk==='J'?'Frais ':'Pleins-lavages ')+Mois(m)+' '+y+'.pdf';const r=await exportFile(nm,toPDF(Lt),'application/pdf');if(r==='fail')toast('Export impossible ici')};
+ if($('rkm'))$('rkm').onclick=()=>openKm(rm.getFullYear(),rm.getMonth());
+ if($('radd')){$('radd').onclick=()=>openService(null);$('rlist').onclick=e=>{const li=e.target.closest('li[data-id]');if(li)openService(S.services.find(s=>s.id===li.dataset.id))}}}
+
+/* ================== SAUVEGARDE ================== */
+function hash(str){let h1=0x811c9dc5;for(let i=0;i<str.length;i++){h1^=str.charCodeAt(i);h1=Math.imul(h1,16777619)}return (h1>>>0).toString(16)}
+function summary(d){return `${d.services.length} journées, ${d.pleins.length} pleins, ${d.lavages.length} lavages, ${d.absences.length} absences, ${d.places.length} lieux`}
+async function doBackup(){const now=Date.now();const data=JSON.parse(JSON.stringify(S));data.lastBackup=now;const body=JSON.stringify(data);
+ const file=JSON.stringify({app:'journees-pleins',format:1,savedAt:new Date(now).toISOString(),summary:summary(data),checksum:hash(body),data},null,1);
+ const r=await exportFile('Sauvegarde-'+dk(now)+'.json',file,'application/json');
+ if(r==='ok'){S.lastBackup=now;save();render();toast('Sauvegarde créée')}else if(r==='fail')toast('Sauvegarde impossible ici')}
+function doRestore(file){const rd=new FileReader();rd.onload=async()=>{let o;try{o=JSON.parse(rd.result)}catch(e){return toast('Fichier illisible')}
+ if(!o||o.app!=='journees-pleins'||!o.data)return toast('Ce fichier n\'est pas une sauvegarde de l\'appli');
+ if(hash(JSON.stringify(o.data))!==o.checksum)return ask('Fichier abîmé','Le contrôle d\'intégrité a échoué : la sauvegarde est incomplète ou modifiée. Rien n\'a été changé.',[{t:'OK',v:0}]);
+ const d=migrate(o.data);
+ const v=await ask('Restaurer cette sauvegarde ?',`Sauvegarde du <b>${fD(Date.parse(o.savedAt))} ${fT(Date.parse(o.savedAt))}</b><br>${esc(summary(d))}<br><br>Toutes les données actuelles seront remplacées.`,[{t:'Restaurer',v:true,c:'red'},{t:'Annuler',v:false}]);
+ if(!v)return;try{localStorage.setItem(KEY+'-avant-restauration',JSON.stringify(S))}catch(e){}
+ S=d;save();render();toast('Données restaurées')};rd.readAsText(file)}
+
+/* ================== RÉGLAGES ================== */
+const SETF=[['nom','Nom (en-tête des récaps)',''],['societe','Société (en-tête fiche gasoil)',''],['tracteur','Immatriculation tracteur',''],['remorque','Immatriculation remorque',''],['depotNom','Dépôt : nom du lieu',''],['depotDep','Dépôt : département',''],['domDep','Domicile : département','']];
+function setFieldsHTML(pref){return SETF.map(([k,l,ex])=>`<div class="fg"><label>${l}<input id="s-${k}" ${k.endsWith('Dep')?'inputmode="numeric" maxlength="3"':''} autocapitalize="${k==='nom'||k==='societe'?'words':'characters'}" value="${esc(pref?(S.settings[k]||ex):S.settings[k])}"></label></div>`).join('')}
+const setFieldsGet=()=>{SETF.forEach(([k])=>{let v=$('s-'+k).value.trim();if(k!=='nom'&&k!=='depotNom'&&k!=='societe')v=v.toUpperCase();S.settings[k]=v});
+ const im=S.settings.tracteur;S.trucks=S.trucks||[];if(im&&!S.trucks.length){const t=new Date();t.setHours(0,0,0,0);S.trucks.push({immat:im,since:t.getTime()})}};
+function truckChange(old,im){const last=S.trucks[S.trucks.length-1];if(!im||!last||last.immat===im)return;
+ sheet(`<h3>Changement de tracteur</h3><p><b>${esc(old||last.immat)}</b> → <b>${esc(im)}</b></p><p class="muted">Nouveau camion : les compteurs du premier s'arrêtent à la date de bascule et ceux du nouveau commencent ce jour-là. Simple correction : on renomme juste le camion actuel.</p>
+ <div class="fg"><label>Date de bascule (premier jour avec le nouveau camion)<input type="date" id="tb-d" value="${dk(Date.now())}"></label></div>
+ <div class="acts" style="flex-direction:column"><button class="btn pri full" id="tb-new">Nouveau camion</button><button class="btn full" id="tb-fix">Correction de l'immatriculation</button></div>`,(el,close)=>{
+ $('tb-new').onclick=()=>{const v=$('tb-d').value;if(!v)return toast('Date manquante');const ms=inputsToMs(v,'00:00');last.until=ms-1;S.trucks.push({immat:im,since:ms});save();close();render();toast('Bascule enregistrée au '+fK(v))};
+ $('tb-fix').onclick=()=>{for(const p of S.pleins)if(p.immat===last.immat&&p.t>=last.since)p.immat=im;last.immat=im;save();close();render();toast('Immatriculation corrigée')}})}
+function openTruck(i){const tr=S.trucks[i];sheet(`<h3>${esc(tr.immat)}</h3><div class="g2"><label>Début<input type="date" id="tr-s" value="${dk(tr.since)}"></label><label>Fin${i===S.trucks.length-1?' (camion actuel)':''}<input type="date" id="tr-u" value="${tr.until?dk(tr.until):''}" ${i===S.trucks.length-1?'disabled':''}></label></div>
+ <p class="muted">Modifier une date déplace aussi la bascule avec le camion voisin.</p><div class="acts"><button class="btn" id="tr-x">Fermer</button><button class="btn pri" id="tr-ok">Enregistrer</button></div>`,(el,close)=>{$('tr-x').onclick=close;
+ $('tr-ok').onclick=()=>{const sv=$('tr-s').value,uv=$('tr-u').value;if(!sv)return toast('Date de début manquante');tr.since=inputsToMs(sv,'00:00');if(i>0)S.trucks[i-1].until=tr.since-1;
+  if(uv&&i<S.trucks.length-1){const u=inputsToMs(uv,'00:00')+DAY-1;if(u<tr.since)return toast('Fin avant le début');tr.until=u;S.trucks[i+1].since=u+1}save();close();render()}})}
+const back=t=>`<div class="row" style="margin-bottom:4px"><button class="btn sm" id="bk-more">‹ Plus</button></div><h1>${t}</h1>`;
+const MORE=[['stat','Stats','Totaux et moyennes par mois et par année'],['trucks','Mes camions','Fiches, photos et calculs par camion'],['places','Mes lieux','Lieux visités, lieux rattachés, départements'],['backup','Sauvegarde','Sauvegarder et restaurer tes données'],['set','Réglages','Nom, société, immatriculations, dépôt, domicile'],['data','Données hors connexion','Communes et aires d\'autoroute']];
+function openMore(){sheet(`<h3>Plus</h3><ul class="list" id="mm">${MORE.map(([k,l,d])=>`<li data-v="${k}"><div class="t"><b>${l}</b><small>${d}</small></div><span class="muted">›</span></li>`).join('')}</ul><div class="acts"><button class="btn full" id="mmx">Fermer</button></div>`,(el,close)=>{$('mmx').onclick=close;
+ $('mm').onclick=e=>{const li=e.target.closest('li[data-v]');if(li){close();view=li.dataset.v;render();scrollTo(0,0)}}})}
+function setHTML(){return back('Réglages')+`<p class="muted">Tous les champs sont facultatifs.</p>${setFieldsHTML(false)}<button class="btn pri full" id="sset">Enregistrer les réglages</button>`}
+function backupHTML(){return back('Sauvegarde')+`<div class="card"><div>${esc(summary(S))}</div><div class="muted">Dernière sauvegarde : ${S.lastBackup?fD(S.lastBackup)+' à '+fT(S.lastBackup):'jamais'}</div>
+ <div class="acts" style="flex-direction:column"><button class="btn pri full" id="sbk">Sauvegarder les données</button><label class="btn full" style="display:flex;align-items:center;justify-content:center;color:var(--ink);font-size:16px">Restaurer les données<input type="file" id="srs" accept=".json,application/json" style="display:none"></label></div></div>
+ <h2>Photos des camions</h2><div class="card"><div class="muted" id="phc">Photos enregistrées : …</div><div class="acts" style="flex-direction:column"><button class="btn full" id="spb">Sauvegarder les photos</button><label class="btn full" style="display:flex;align-items:center;justify-content:center;color:var(--ink);font-size:16px">Restaurer des photos<input type="file" id="spr" accept=".json,application/json" style="display:none"></label></div></div>`}
+function dataHTML(){return back('Données hors connexion')+`<h2>Communes françaises</h2><div class="card row"><span class="sp">${comState==='ok'?COM.length+' communes enregistrées':comState==='chargement'?'Téléchargement…':comState==='erreur'?'Échec du téléchargement':'Pas encore téléchargées (connexion nécessaire)'}</span><button class="btn sm" id="scom">${comState==='ok'?'Mettre à jour':'Télécharger'}</button></div>
+ <h2>Aires d'autoroute</h2><div class="card row"><span class="sp">${airState==='ok'?AIR.length+' aires connues':airState==='chargement'?'Téléchargement… (peut prendre une minute)':airState==='erreur'?'Échec du téléchargement':'Pas encore téléchargées (connexion nécessaire)'}</span><button class="btn sm" id="sair">${airState==='ok'?'Mettre à jour':'Télécharger'}</button></div>${AIR.length?'<button class="btn full" id="sairl" style="margin-top:10px">Voir les aires</button>':''}`}
+let airF='all',airQ='',airS='az';
+function airesList(){const q=norm(airQ);let L=AIR.filter(a=>(airF!=='no'||!aRef(a))&&(!q||a[6].includes(q)||norm(a[3]).includes(q)));
+ const al=(a,b)=>aireCore(a[6]+' ')<aireCore(b[6]+' ')?-1:1;const rn=r=>{const m=String(r).match(/^([A-Z]+)(\d+)/);return m?[m[1],+m[2]]:['ZZ',1e9]};
+ const li=a=>`<li data-k="${esc(aKey(a))}"><div class="t">${esc(a[0])}<small>${esc(a[3])} (${esc(a[4])})</small></div><b>${esc(aRef(a))||'<span class="muted">—</span>'}</b></li>`;
+ const n=L.length;let h='',shown=0;
+ if(airS==='ref'){const g={};for(const a of L){const r=aRef(a)||'';(g[r]=g[r]||[]).push(a)}
+  const ks=Object.keys(g).sort((a,b)=>{if(!a)return 1;if(!b)return -1;const x=rn(a),y=rn(b);return x[0]<y[0]?-1:x[0]>y[0]?1:x[1]-y[1]});
+  for(const k of ks){if(shown>=200)break;h+=`<li style="background:var(--chip);border:0;border-radius:8px;padding:8px 10px;margin-top:8px"><b class="sp">${k?esc(k):'Sans autoroute'}</b><span class="muted">${g[k].length}</span></li>`;for(const a of g[k].sort(al)){if(shown>=200)break;h+=li(a);shown++}}}
+ else{for(const a of L.sort(al).slice(0,200)){h+=li(a);shown++}}
+ return (h+(n>shown?`<li class="muted">${n-shown} autres : affine la recherche.</li>`:''))||'<li class="muted">Aucune aire</li>'}
+function airesHTML(){
+ return `<div class="row" style="margin-bottom:4px"><button class="btn sm" id="bk-data">‹ Données</button></div><h1>Aires d'autoroute</h1>
+ <div class="seg" id="ass"><button data-s="az" class="${airS==='az'?'on':''}">A → Z</button><button data-s="ref" class="${airS==='ref'?'on':''}">Par autoroute</button></div>
+ <button class="chip ${airF==='no'?'on':''}" id="afn" style="margin-top:8px">Sans autoroute seulement (${AIR.filter(a=>!aRef(a)).length})</button>
+ <div class="fg"><input id="aq" placeholder="Rechercher une aire ou une commune" value="${esc(airQ)}"></div>
+ <ul class="list" id="al">${airesList()}</ul>`}
+function airesMount(){on('bk-data','onclick',()=>{view='data';render()});
+ on('ass','onclick',e=>{const b=e.target.closest('[data-s]');if(b){airS=b.dataset.s;render()}});on('afn','onclick',()=>{airF=airF==='no'?'all':'no';render()});
+ const aq=$('aq');if(aq)aq.oninput=()=>{airQ=aq.value;$('al').innerHTML=airesList()};
+ on('al','onclick',e=>{const li=e.target.closest('li[data-k]');if(!li)return;const a=AIR.find(x=>aKey(x)===li.dataset.k);if(!a)return;
+  sheet(`<h3>${esc(a[0])}</h3><p class="muted" style="margin-top:-6px">${esc(a[3])} (${esc(a[4])})</p><div class="fg"><label>Numéro d'autoroute<input id="are" autocapitalize="characters" value="${esc(aRef(a))}" placeholder="A…"></label></div><div class="acts"><button class="btn" id="arx">Annuler</button><button class="btn pri" id="aro">Enregistrer</button></div>`,(el,close)=>{$('arx').onclick=close;
+   $('aro').onclick=()=>{const v=$('are').value.trim().toUpperCase().replace(/\s+/g,'');S.airRef=S.airRef||{};if(v)S.airRef[aKey(a)]=v;else delete S.airRef[aKey(a)];save();close();render()}})})}
+function placesHTML(){return back('Mes lieux')+`<h2>Lieux rattachés (${(S.aliases||[]).length})</h2><ul class="list" id="sal">${(S.aliases||[]).map((a,i)=>`<li><div class="t">${esc(a.n)}<small>→ ${esc(plStr(a.to))}</small></div><button class="btn sm" data-i="${i}">Retirer</button></li>`).join('')||'<li class="muted">Aucun pour l\'instant</li>'}</ul>
+ <h2>Lieux enregistrés (${S.places.length})</h2>${placesListHTML()}`}
+function trucksHTML(){const st=v=>{const d=parseD(v);return d?(d.ms!=null?d.ms:new Date(d.year,6,1).getTime()):-Infinity};
+ const items=[...(S.trucks||[]).map((t,i)=>({k:t.service?inputsToMs(t.service,'00:00'):t.since,h:`<li data-i="${i}"><div class="t"><b>${esc(t.immat)}</b>${t.brand||t.model||t.puiss?' · '+esc([t.brand,t.model,num(t.puiss)!=null?String(num(t.puiss)):''].filter(Boolean).join(' ')):''}<small>${esc([t.company,t.service?'depuis le '+kDate(t.service).toLocaleDateString('fr-FR'):'',t.until?'jusqu\'au '+fD(t.until):(t.since>Date.now()?'à partir du '+new Date(t.since).toLocaleDateString('fr-FR'):'actuel')].filter(Boolean).join(' · '))}</small></div><span class="muted">›</span></li>`})),
+  ...(S.oldTrucks||[]).map(t=>({k:Math.max(st(t.pfrom),st(t.pto)-1),h:`<li data-o="${t.id}"><div class="t"><b>${esc(t.immat||[t.brand,t.model,num(t.puiss)!=null?String(num(t.puiss)):''].filter(Boolean).join(' ')||'Camion')}</b>${t.immat&&(t.brand||t.model||t.puiss)?' · '+esc([t.brand,t.model,num(t.puiss)!=null?String(num(t.puiss)):''].filter(Boolean).join(' ')):''}<small>${esc([t.company,[t.pfrom,t.pto].filter(Boolean).join(' → ')].filter(Boolean).join(' · '))}</small></div><span class="muted">›</span></li>`}))].sort((a,b)=>b.k-a.k);
+ return back('Mes camions')+`<ul class="list" id="smt">${items.map(x=>x.h).join('')}</ul>
+ <button class="btn pri full" id="tnew" style="margin-top:12px">+ Ajouter un camion</button>`}
+
+const DEPTS=[["01", "Ain", "Auvergne-Rhône-Alpes"], ["02", "Aisne", "Hauts-de-France"], ["03", "Allier", "Auvergne-Rhône-Alpes"], ["04", "Alpes-de-Haute-Provence", "Provence-Alpes-Côte d'Azur"], ["05", "Hautes-Alpes", "Provence-Alpes-Côte d'Azur"], ["06", "Alpes-Maritimes", "Provence-Alpes-Côte d'Azur"], ["07", "Ardèche", "Auvergne-Rhône-Alpes"], ["08", "Ardennes", "Grand Est"], ["09", "Ariège", "Occitanie"], ["10", "Aube", "Grand Est"], ["11", "Aude", "Occitanie"], ["12", "Aveyron", "Occitanie"], ["13", "Bouches-du-Rhône", "Provence-Alpes-Côte d'Azur"], ["14", "Calvados", "Normandie"], ["15", "Cantal", "Auvergne-Rhône-Alpes"], ["16", "Charente", "Nouvelle-Aquitaine"], ["17", "Charente-Maritime", "Nouvelle-Aquitaine"], ["18", "Cher", "Centre-Val de Loire"], ["19", "Corrèze", "Nouvelle-Aquitaine"], ["2A", "Corse-du-Sud", "Corse"], ["2B", "Haute-Corse", "Corse"], ["21", "Côte-d'Or", "Bourgogne-Franche-Comté"], ["22", "Côtes-d'Armor", "Bretagne"], ["23", "Creuse", "Nouvelle-Aquitaine"], ["24", "Dordogne", "Nouvelle-Aquitaine"], ["25", "Doubs", "Bourgogne-Franche-Comté"], ["26", "Drôme", "Auvergne-Rhône-Alpes"], ["27", "Eure", "Normandie"], ["28", "Eure-et-Loir", "Centre-Val de Loire"], ["29", "Finistère", "Bretagne"], ["30", "Gard", "Occitanie"], ["31", "Haute-Garonne", "Occitanie"], ["32", "Gers", "Occitanie"], ["33", "Gironde", "Nouvelle-Aquitaine"], ["34", "Hérault", "Occitanie"], ["35", "Ille-et-Vilaine", "Bretagne"], ["36", "Indre", "Centre-Val de Loire"], ["37", "Indre-et-Loire", "Centre-Val de Loire"], ["38", "Isère", "Auvergne-Rhône-Alpes"], ["39", "Jura", "Bourgogne-Franche-Comté"], ["40", "Landes", "Nouvelle-Aquitaine"], ["41", "Loir-et-Cher", "Centre-Val de Loire"], ["42", "Loire", "Auvergne-Rhône-Alpes"], ["43", "Haute-Loire", "Auvergne-Rhône-Alpes"], ["44", "Loire-Atlantique", "Pays de la Loire"], ["45", "Loiret", "Centre-Val de Loire"], ["46", "Lot", "Occitanie"], ["47", "Lot-et-Garonne", "Nouvelle-Aquitaine"], ["48", "Lozère", "Occitanie"], ["49", "Maine-et-Loire", "Pays de la Loire"], ["50", "Manche", "Normandie"], ["51", "Marne", "Grand Est"], ["52", "Haute-Marne", "Grand Est"], ["53", "Mayenne", "Pays de la Loire"], ["54", "Meurthe-et-Moselle", "Grand Est"], ["55", "Meuse", "Grand Est"], ["56", "Morbihan", "Bretagne"], ["57", "Moselle", "Grand Est"], ["58", "Nièvre", "Bourgogne-Franche-Comté"], ["59", "Nord", "Hauts-de-France"], ["60", "Oise", "Hauts-de-France"], ["61", "Orne", "Normandie"], ["62", "Pas-de-Calais", "Hauts-de-France"], ["63", "Puy-de-Dôme", "Auvergne-Rhône-Alpes"], ["64", "Pyrénées-Atlantiques", "Nouvelle-Aquitaine"], ["65", "Hautes-Pyrénées", "Occitanie"], ["66", "Pyrénées-Orientales", "Occitanie"], ["67", "Bas-Rhin", "Grand Est"], ["68", "Haut-Rhin", "Grand Est"], ["69", "Rhône", "Auvergne-Rhône-Alpes"], ["70", "Haute-Saône", "Bourgogne-Franche-Comté"], ["71", "Saône-et-Loire", "Bourgogne-Franche-Comté"], ["72", "Sarthe", "Pays de la Loire"], ["73", "Savoie", "Auvergne-Rhône-Alpes"], ["74", "Haute-Savoie", "Auvergne-Rhône-Alpes"], ["75", "Paris", "Île-de-France"], ["76", "Seine-Maritime", "Normandie"], ["77", "Seine-et-Marne", "Île-de-France"], ["78", "Yvelines", "Île-de-France"], ["79", "Deux-Sèvres", "Nouvelle-Aquitaine"], ["80", "Somme", "Hauts-de-France"], ["81", "Tarn", "Occitanie"], ["82", "Tarn-et-Garonne", "Occitanie"], ["83", "Var", "Provence-Alpes-Côte d'Azur"], ["84", "Vaucluse", "Provence-Alpes-Côte d'Azur"], ["85", "Vendée", "Pays de la Loire"], ["86", "Vienne", "Nouvelle-Aquitaine"], ["87", "Haute-Vienne", "Nouvelle-Aquitaine"], ["88", "Vosges", "Grand Est"], ["89", "Yonne", "Bourgogne-Franche-Comté"], ["90", "Territoire de Belfort", "Bourgogne-Franche-Comté"], ["91", "Essonne", "Île-de-France"], ["92", "Hauts-de-Seine", "Île-de-France"], ["93", "Seine-Saint-Denis", "Île-de-France"], ["94", "Val-de-Marne", "Île-de-France"], ["95", "Val-d'Oise", "Île-de-France"]];const DEPN=Object.fromEntries(DEPTS.map(d=>[d[0],d]));const depNorm=d=>{d=String(d||'').toUpperCase().trim();return /^\d$/.test(d)?'0'+d:d};
+let plSort='freq';try{plSort=localStorage.getItem('jp-plsort')||'freq'}catch(e){}
+function visitStats(){const pk=p=>norm(p.n)+'|'+(p.d||'')+'|'+(p.p||'');const st={};let prev=null;
+ for(const v of [...S.services].sort((a,b)=>a.s-b.s)){const hit=(p,t)=>{if(!p||!p.n)return;const k=pk(p);const o=st[k]=st[k]||{c:0,t:0};o.c++;o.t=Math.max(o.t,t)};
+  if(v.sp&&v.sp.n&&!(prev&&prev.ep&&pk(prev.ep)===pk(v.sp)))hit(v.sp,v.s);else if(v.sp&&v.sp.n){const o=st[pk(v.sp)];if(o)o.t=Math.max(o.t,v.s)}
+  hit(v.ep,v.e||v.s);prev=v}
+ return {st,pk}}
+function placesListHTML(){const {st,pk}=visitStats();const li=p=>`<li data-k="${esc(norm(p.n)+'|'+(p.d||'')+'|'+(p.p||''))}"><div class="t">${esc(p.n)}${p.p&&p.p!=='F'?' ('+esc(p.p)+')':p.d?' ('+esc(p.d)+')':''}<small>${p.c} visite${p.c>1?'s':''}${p.t?' · dernière : '+fD(p.t):''}</small></div><span class="muted">›</span></li>`;
+ const A=S.places.map(p=>{const v=st[pk(p)];return {...p,c:v?v.c:0,t:v?v.t:p.t}}).filter(p=>p.c>0),al=(a,b)=>norm(a.n)<norm(b.n)?-1:norm(a.n)>norm(b.n)?1:0;let body='';
+ if(!A.length)body='<li class="muted">Aucun lieu pour l\'instant</li>';
+ else if(plSort==='dep'){const g={};A.forEach(p=>{const k=p.p&&p.p!=='F'?p.p:(depNorm(p.d)||'—');(g[k]=g[k]||[]).push(p)});
+  const keys=Object.keys(g).sort((a,b)=>{const fa=/^\d/.test(a),fb=/^\d/.test(b);if(fa!==fb)return fa?-1:1;return a.localeCompare(b,'fr',{numeric:true})});
+  body=keys.map(k=>{const t=g[k].reduce((s,p)=>s+(p.c||0),0);return `<li style="background:var(--chip);border-radius:8px;padding:8px 10px;margin-top:8px;border:0"><b class="sp">${/^\d/.test(k)?esc(k)+(DEPN[depNorm(k)]?' · '+esc(DEPN[depNorm(k)][1]):''):k==='—'?'Sans département':'Pays : '+esc(k)}</b><span class="muted">${t} visite${t>1?'s':''} · ${g[k].length} lieu${g[k].length>1?'x':''}</span></li>`+g[k].sort(al).map(li).join('')}).join('');
+  const seen=new Set(A.filter(p=>!p.p||p.p==='F').map(p=>depNorm(p.d)));const miss=DEPTS.filter(d=>!seen.has(d[0]));
+  if(miss.length)body+=`<li style="border:0;padding-top:22px"><b class="sp">Jamais visités</b><span class="muted">${miss.length} département${miss.length>1?'s':''} sur 96</span></li>`+miss.map(d=>`<li><div class="t"><span class="muted">${d[0]}</span> ${esc(d[1])}<small>${esc(d[2])}</small></div></li>`).join('')}
+ else{A.sort(plSort==='alpha'?al:plSort==='recent'?(a,b)=>(b.t||0)-(a.t||0):(a,b)=>(b.c||0)-(a.c||0)||al(a,b));body=A.map(li).join('')}
+ return `<div class="seg" id="spls">${[['freq','Récurrence'],['recent','Récents'],['alpha','A → Z'],['dep','Dép.']].map(([k,l])=>`<button data-k="${k}" class="${plSort===k?'on':''}">${l}</button>`).join('')}</div><ul class="list" id="spl">${body}</ul>`}
+const on=(id,ev,fn)=>{const e=$(id);if(e)e[ev]=fn};
+function moreMount(){on('bk-more','onclick',openMore);
+ on('sset','onclick',()=>{const old=S.settings.tracteur;setFieldsGet();save();toast('Réglages enregistrés');truckChange(old,S.settings.tracteur)});
+ on('smt','onclick',e=>{const li=e.target.closest('li[data-i],li[data-o]');if(li){tSel=li.dataset.o||+li.dataset.i;view='truck';render();scrollTo(0,0)}});
+ on('tnew','onclick',openAddTruck);
+ on('sbk','onclick',doBackup);on('srs','onchange',e=>{const f=e.target.files[0];if(f)doRestore(f);e.target.value=''});
+ on('spb','onclick',photoBackup);on('spr','onchange',e=>{const f=e.target.files[0];if(f)photoRestore(f);e.target.value=''});
+ if($('phc'))phAll().then(a=>{if($('phc'))$('phc').textContent='Photos enregistrées : '+a.length}).catch(()=>{});
+ on('sairl','onclick',()=>{view='aires';render();scrollTo(0,0)});on('scom','onclick',()=>{loadCommunes(true);render()});on('sair','onclick',()=>loadAires(true));
+ on('spls','onclick',e=>{const b=e.target.closest('button');if(b){plSort=b.dataset.k;try{localStorage.setItem('jp-plsort',plSort)}catch(x){};const y=scrollY;render();scrollTo(0,y)}});
+ on('spl','onclick',e=>{const li=e.target.closest('li[data-k]');if(!li)return;const p=S.places.find(q=>pkey(q)===li.dataset.k);if(p)openPlaceEdit(p)});
+ on('sal','onclick',e=>{const b=e.target.closest('button[data-i]');if(!b)return;S.aliases.splice(+b.dataset.i,1);save();render()})}
+/* ================== photos ================== */
+function phdb(){return new Promise((res,rej)=>{try{const r=indexedDB.open('jp-photos',1);r.onupgradeneeded=()=>r.result.createObjectStore('p',{keyPath:'id'});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}})}
+async function phPut(o){const db=await phdb();return new Promise((res,rej)=>{const t=db.transaction('p','readwrite');t.objectStore('p').put(o);t.oncomplete=()=>res();t.onerror=()=>rej(t.error)})}
+async function phDel(id){const db=await phdb();return new Promise((res,rej)=>{const t=db.transaction('p','readwrite');t.objectStore('p').delete(id);t.oncomplete=()=>res();t.onerror=()=>rej(t.error)})}
+async function phAll(){const db=await phdb();return new Promise((res,rej)=>{const q=db.transaction('p').objectStore('p').getAll();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>rej(q.error)})}
+function shrink(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file);const im=new Image();im.onload=()=>{const k=Math.min(1,1600/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c.toDataURL('image/jpeg',.8))};im.onerror=rej;im.src=u})}
+async function photoBackup(){const a=await phAll();if(!a.length)return toast('Aucune photo');const r=await exportFile('Photos-camions-'+dk(Date.now())+'.json',JSON.stringify({app:'journees-photos',format:1,savedAt:new Date().toISOString(),photos:a}),'application/json');if(r==='ok')toast(a.length+' photos sauvegardées')}
+function photoRestore(f){const rd=new FileReader();rd.onload=async()=>{let o;try{o=JSON.parse(rd.result)}catch(e){return toast('Fichier illisible')}if(!o||o.app!=='journees-photos')return toast('Ce n\'est pas une sauvegarde de photos');
+ for(const p of o.photos||[])await phPut(p);toast((o.photos||[]).length+' photos restaurées');render()};rd.readAsText(f)}
+/* ================== fiche camion ================== */
+let tSel=0;
+function truckStats(tr){const from=tr.service?inputsToMs(tr.service,'00:00'):tr.since,to=tr.until||Infinity;const A=analyze();const inP=t=>t>=from&&t<=to;
+ const days=new Set();let nd=0,wep=0,rass=0;for(const v of A.sv)if(inP(v.s))days.add(dk(v.s));
+ for(const r of A.rests){if(!r.done||!inP(r.from))continue;if(!r.weekly){if(r.a.ep&&r.a.ep.n&&!isDom(r.a.ep))nd++;continue}const st=wkStatus(r);if(st==='paye'){wep++;nd+=nightsIn(r.from,r.to)}else if(st==='rass'){rass++;nd+=nightsIn(r.from,r.to)}}
+ const kms=[];let gas=0;for(const p of S.pleins){if(p.immat!==tr.immat||!inP(p.t))continue;const k=num(p.km);if(k)kms.push(k);if(p.g&&p.g.on){const v=num(p.g.v);if(v)gas+=v}}
+ for(const [k,o] of Object.entries(S.km||{})){const [y,m]=k.split('-').map(Number);const t0=new Date(y,m-1,1).getTime(),t1=new Date(y,m,1).getTime()-1;if(t0>=from&&t1<=to)for(const x of [o.start,o.end]){const n=num(x);if(n)kms.push(n)}}
+ const km=kms.length>1?Math.max(...kms)-Math.min(...kms):null;const c=consoTruck(tr);return {days:days.size,nd,wep,rass,km,gas,avg:c.avg,from}}
+const curTruck=()=>(S.trucks||[]).filter(t=>t.since<=Date.now()).pop();const curImmat=()=>{const t=curTruck();return t?t.immat:S.settings.tracteur};
+const parseD=v=>{v=String(v||'').trim();let m=v.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);if(m)return {ms:new Date(+m[3],+m[2]-1,+m[1]).getTime(),iso:m[3]+'-'+pad(+m[2])+'-'+pad(+m[1])};m=v.match(/^(\d{4})-(\d{2})-(\d{2})$/);if(m)return {ms:new Date(+m[1],+m[2]-1,+m[3]).getTime(),iso:v};if(/^\d{4}$/.test(v))return {year:+v};return null};
+function openAddTruck(){sheet(`<h3>Ajouter un camion</h3><div class="fg"><label>Immatriculation<input id="at-i" autocapitalize="characters"></label></div><div class="fg"><label>Entreprise<input id="at-c" value="${esc(S.settings.societe||'')}"></label></div>
+ <div class="g2"><label>Depuis<input id="at-f" placeholder="jj/mm/aaaa ou année"></label><label>Jusqu'au<input id="at-t" placeholder="vide = camion actuel"></label></div>
+ <div class="acts"><button class="btn" id="at-x">Annuler</button><button class="btn pri" id="at-ok">Ajouter</button></div>`,(el,close)=>{$('at-x').onclick=close;
+ $('at-ok').onclick=()=>{const im=$('at-i').value.trim().toUpperCase(),co=$('at-c').value.trim(),fv=$('at-f').value.trim(),tv=$('at-t').value.trim();const d1=parseD(fv);
+  if(!tv&&d1&&d1.ms){if(!im)return toast('Immatriculation nécessaire pour ton camion actuel');S.trucks=S.trucks||[];const last=S.trucks[S.trucks.length-1];if(last&&d1.ms<=(last.service?inputsToMs(last.service,'00:00'):last.since))return toast('Date avant le début de ton camion actuel');
+   if(last)last.until=d1.ms-1;S.trucks.push({immat:im,company:co,since:d1.ms,service:d1.iso,tanks:['']});if(d1.ms<=Date.now())S.settings.tracteur=im;save();close();tSel=S.trucks.length-1;view='truck';render();toast(d1.ms>Date.now()?'Prochain camion enregistré : bascule le '+fK(d1.iso):'Camion actuel enregistré');return}
+  if(!tv&&fv&&!d1)return toast('Date « Depuis » non reconnue : jj/mm/aaaa ou année');
+  const t={id:uid(),immat:im,company:co,pfrom:fv,pto:tv,tanks:['']};S.oldTrucks=S.oldTrucks||[];S.oldTrucks.push(t);save();close();tSel=t.id;view='truck';render();toast('Camion ajouté')}})}
+const wU=v=>{const n=num(v);return n==null?v:(n<100?String(v).replace('.',',')+' t':fkm(n)+' kg')};
+const TF=[['company','Entreprise'],['brand','Marque'],['model','Modèle'],['year','Mise en circulation'],['ptac','PTAC','dec',wU],['ptra','PTRA','dec',wU],['vide','Poids à vide','dec',wU],['puiss','Puissance moteur','num',v=>num(v)!=null?fkm(num(v))+' ch':v],['euro','Norme Euro','num',v=>/^euro/i.test(v)?v:'Euro '+v],['boite','Boîte de vitesses','gear']];
+const getTr=()=>typeof tSel==='string'?(S.oldTrucks||[]).find(t=>t.id===tSel):(S.trucks||[])[tSel];
+const phKey=tr=>tr.id?'old:'+tr.id:tr.immat;
+function truckHTML(){const tr=getTr();if(!tr){view='trucks';return trucksHTML()}const old=!!tr.id;const st=old?null:truckStats(tr);
+ const tiles=[];if(st){if(st.days)tiles.push(['Jours travaillés',st.days]);if(st.km)tiles.push(['Kilomètres',fkm(st.km)]);if(st.gas)tiles.push(['Gasoil',fkm(st.gas)+' L']);if(st.avg!=null)tiles.push(['Conso moyenne',f1(st.avg)+' L/100']);if(st.nd)tiles.push(['Nuits dedans',st.nd]);if(st.wep||st.rass)tiles.push(['Week-ends payés',st.wep+(st.rass?' <span style="font-size:13px;font-weight:600">+ '+st.rass+' rass.</span>':'')])}
+ const fY=k=>kDate(k).toLocaleDateString('fr-FR');const per=old?[tr.pfrom,tr.pto].filter(Boolean).join(' → '):[tr.service?fY(tr.service):'',tr.until?new Date(tr.until).toLocaleDateString('fr-FR'):(tr.service?"aujourd'hui":'')].filter(Boolean).join(' → ');
+ const sub=[tr.company,[tr.brand,tr.model,num(tr.puiss)!=null?String(num(tr.puiss)):''].filter(Boolean).join(' '),per].filter(Boolean).join(' · ');
+ const car=TF.filter(([k])=>k!=='company'&&k!=='brand'&&k!=='model'&&tr[k]).map(([k,l,ty,u])=>`<li><div class="t">${l}</div><b>${esc(u?u(tr[k]):tr[k])}</b></li>`);
+ const tk=(tr.tanks||[]).filter(v=>num(v));if(tk.length)car.push(`<li><div class="t">Réservoir${tk.length>1?'s':''} gasoil</div><b>${tk.map(v=>fkm(num(v))+' L').join(' + ')}${tk.length>1?' = '+fkm(tk.reduce((a,v)=>a+num(v),0))+' L':''}</b></li>`);
+ return `<div class="row" style="margin-bottom:4px"><button class="btn sm" id="bk-tr">‹ Mes camions</button></div><h1>${esc(tr.immat||'Camion')}</h1>${sub?`<p class="muted" style="margin-top:-6px">${esc(sub)}</p>`:''}
+ ${tiles.length?`<div class="tiles">${tiles.map(([l,v])=>`<div class="stt"><span>${l}</span><b>${v}</b></div>`).join('')}</div>`:''}
+ <div id="tph" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:14px"></div>
+ ${car.length?`<h2>Caractéristiques</h2><ul class="list">${car.join('')}</ul>`:''}
+ ${tr.notes?`<h2>Notes</h2><p style="white-space:pre-wrap">${esc(tr.notes)}</p>`:''}
+ <div class="acts" style="flex-direction:column"><label class="btn full" style="display:flex;align-items:center;justify-content:center;color:var(--ink);font-size:16px">+ Ajouter des photos<input type="file" id="tpa" accept="image/*" multiple style="display:none"></label><button class="btn pri full" id="t-edit">Modifier la fiche</button></div>`}
+function openTruckEdit(tr){const old=!!tr.id;const i=old?-1:S.trucks.indexOf(tr);const tanks=tr.tanks&&tr.tanks.length?tr.tanks.slice():[''];
+ const inp=(k,l,v,ty)=>`<div class="fg"><label>${l}<input id="te-${k}" ${ty?`type="${ty}"`:''} value="${esc(v||'')}"></label></div>`;
+ const draw=()=>`<h3>${old?(tr.immat?'Modifier':'Ancien camion'):'Modifier '+esc(tr.immat)}</h3>
+ ${old?inp('immat','Immatriculation',tr.immat)+`<div class="g2">${inp('pfrom','Depuis (année ou date)',tr.pfrom)}${inp('pto','Jusqu\'au (année ou date)',tr.pto)}</div>`:
+  `<div class="g2">${inp('service','Mon camion depuis',tr.service,'date')}${inp('since','Début calcul conso',dk(tr.since),'date')}</div>${tr.until?inp('until','Jusqu\'au',dk(tr.until),'date'):''}`}
+ ${TF.map(([k,l,ty])=>{if(ty==='gear'){const m=String(tr.boite||'').match(/^(Automatique|Manuelle)?\s*(\d+)?/)||[];return `<div class="fg"><label>${l}</label><div class="g2" style="margin-top:4px"><select id="te-gt"><option value="">—</option>${['Automatique','Manuelle'].map(o=>`<option ${m[1]===o?'selected':''}>${o}</option>`).join('')}</select><select id="te-gn"><option value="">Rapports</option>${Array.from({length:13},(_,i)=>i+4).map(n=>`<option value="${n}" ${+m[2]===n?'selected':''}>${n} rapports</option>`).join('')}</select></div></div>`}
+  const v=tr[k]||(k==='company'&&!old&&!tr.company?S.settings.societe:'');return ty?`<div class="fg"><label>${l}<input id="te-${k}" inputmode="${ty==='dec'?'decimal':'numeric'}" value="${esc(v)}"></label></div>`:inp(k,l,v)}).join('')}
+ <div class="fg"><label>Réservoirs gasoil (litres)</label><div id="ttk">${tanks.map((v,j)=>`<div class="row" style="margin-top:6px"><input class="sp" type="number" inputmode="numeric" data-tk="${j}" value="${esc(v)}" placeholder="Réservoir ${j+1}">${j?`<button type="button" class="btn sm" data-rm="${j}">✕</button>`:''}</div>`).join('')}</div><button type="button" class="btn sm" id="te-addtk" style="margin-top:8px">+ Réservoir</button></div>
+ <div class="fg"><label>Notes<textarea id="te-notes" rows="4" style="display:block;width:100%;font-size:16px;font-family:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:4px">${esc(tr.notes||'')}</textarea></label></div>
+ <div class="acts">${old?'<button class="btn red" id="te-del">Supprimer</button>':''}<button class="btn" id="te-x">Annuler</button><button class="btn pri" id="te-ok">Enregistrer</button></div>`;
+ sheet(draw(),(el,close)=>{const tkv=()=>[...el.querySelectorAll('[data-tk]')].map(x=>x.value.trim());
+  el.addEventListener('click',e=>{if(e.target.id==='te-addtk'){const v=tkv();v.push('');const box=$('ttk');box.insertAdjacentHTML('beforeend',`<div class="row" style="margin-top:6px"><input class="sp" type="number" inputmode="numeric" data-tk="${v.length-1}" placeholder="Réservoir ${v.length}"><button type="button" class="btn sm" data-rm="${v.length-1}">✕</button></div>`)}
+   const rm=e.target.closest('[data-rm]');if(rm)rm.parentNode.remove()});
+  $('te-x').onclick=close;if($('te-del'))$('te-del').onclick=async()=>{if(await ask('Supprimer ce camion ?','',[{t:'Supprimer',v:true,c:'red'},{t:'Annuler',v:false}])){S.oldTrucks=S.oldTrucks.filter(t=>t!==tr);save();close();view='trucks';render()}};
+  $('te-ok').onclick=()=>{TF.forEach(([k,l,ty])=>{if(ty==='gear'){const a=$('te-gt').value,b=$('te-gn').value;tr.boite=[a,b?b+' rapports':''].filter(Boolean).join(' ')}else tr[k]=$('te-'+k).value.trim()});tr.notes=$('te-notes').value;tr.tanks=tkv();
+   if(old){tr.immat=$('te-immat').value.trim().toUpperCase();tr.pfrom=$('te-pfrom').value.trim();tr.pto=$('te-pto').value.trim();if(!S.oldTrucks.includes(tr))S.oldTrucks.push(tr)}
+   else{tr.service=$('te-service').value||'';const si=$('te-since').value;if(si)tr.since=inputsToMs(si,'00:00');const u=$('te-until');if(u&&u.value){tr.until=inputsToMs(u.value,'00:00')+DAY-1;if(S.trucks[i+1])S.trucks[i+1].since=tr.until+1}}
+   save();close();if(old)tSel=tr.id;view='truck';render();toast('Fiche enregistrée')}})}
+function truckMount(){const tr=getTr();if(!tr)return moreMount();on('bk-tr','onclick',()=>{view='trucks';render()});$('t-edit').onclick=()=>openTruckEdit(tr);
+ const box=$('tph');
+ phAll().then(a=>{const mine=a.filter(p=>p.truck===phKey(tr)).sort((x,y)=>x.t-y.t);box.innerHTML=mine.map(p=>`<img src="${p.data}" data-id="${p.id}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px">`).join('')}).catch(()=>{});
+ box.onclick=e=>{const im=e.target.closest('img[data-id]');if(!im)return;sheet(`<img src="${im.src}" style="width:100%;border-radius:10px"><div class="acts"><button class="btn red" id="phd">Supprimer</button><button class="btn" id="phx">Fermer</button></div>`,(el,close)=>{$('phx').onclick=close;$('phd').onclick=async()=>{await phDel(im.dataset.id);close();render()}})};
+ $('tpa').onchange=async e=>{const fs=[...e.target.files];e.target.value='';let n=0;for(const f of fs){try{const d=await shrink(f);await phPut({id:uid(),truck:phKey(tr),t:Date.now(),data:d});n++}catch(x){}}toast(n+' photo'+(n>1?'s':'')+' ajoutée'+(n>1?'s':''));render()}}
+
+const pkey=p=>norm(p.n)+'|'+(p.d||'')+'|'+(p.p||'');
+function replacePlace(op,np){const k=pkey(op);let n=0;for(const v of S.services)for(const f of ['sp','ep'])if(v[f]&&v[f].n&&pkey(v[f])===k){v[f]={n:np.n,d:np.d,p:np.p};n++}
+ const old=S.places.find(p=>pkey(p)===k);S.places=S.places.filter(p=>pkey(p)!==k);
+ if(!S.places.find(p=>pkey(p)===pkey(np)))S.places.push({n:np.n,d:np.d,p:np.p,c:0,t:old?old.t:Date.now(),lat:old&&old.lat,lon:old&&old.lon});return n}
+function openPlaceEdit(p){const others=S.places.filter(q=>pkey(q)!==pkey(p)).sort((a,b)=>norm(a.n)<norm(b.n)?-1:1);
+ sheet(`<h3>${esc(plStr(p))}</h3><h2 style="margin-top:0">Corriger</h2><div class="plrow"><label>Nom<input id="pe-n" value="${esc(p.n)}"></label><label>Dép.<input id="pe-d" maxlength="3" value="${esc(p.d||'')}"></label><label>Pays<input id="pe-p" maxlength="3" value="${esc(p.p||'F')}"></label></div>
+ <button class="btn pri full" id="pe-ok" style="margin-top:10px">Enregistrer la correction</button>
+ <h2>Rattacher à une commune</h2><p class="muted">Pour une aire, un lieu-dit ou une zone : toutes les journées passent sur la commune, et l'appli s'en souviendra à la saisie.</p>${placeHTML('pr',{d:p.d,p:p.p},false)}
+ <button class="btn full" id="pr-ok" style="margin-top:10px">Rattacher</button>
+ <h2>Fusionner avec un autre lieu</h2><select id="pf">${others.map((q,i)=>`<option value="${i}">${esc(plStr(q))}</option>`).join('')}</select><button class="btn full" id="pf-ok" style="margin-top:10px">Fusionner</button>
+ <div class="acts"><button class="btn red" id="pe-del">Retirer de la liste</button><button class="btn" id="pe-x">Fermer</button></div>`,(el,close)=>{
+ const m=mountPlace('pr');$('pe-x').onclick=close;
+ const done=(n,msg)=>{save();close();render();toast(msg+' ('+n+' journée'+(n>1?'s':'')+' mises à jour)')};
+ $('pe-ok').onclick=()=>{const np={n:$('pe-n').value.trim(),d:$('pe-d').value.trim().toUpperCase(),p:($('pe-p').value.trim()||'F').toUpperCase()};if(!np.n)return toast('Nom vide');if(np.p!=='F')np.d='';done(replacePlace(p,np),'Lieu corrigé')};
+ $('pr-ok').onclick=()=>{const c=m.get();if(!c.n)return toast('Indique la commune');(S.aliases=S.aliases||[]).push({n:p.n,to:c});done(replacePlace(p,c),'Rattaché à '+c.n)};
+ $('pf-ok').onclick=async()=>{const q=others[+$('pf').value];if(!q)return;if(await ask('Fusionner ?',esc(plStr(p))+' deviendra '+esc(plStr(q))+' partout.',[{t:'Fusionner',v:true,c:'pri'},{t:'Annuler',v:false}]))done(replacePlace(p,q),'Lieux fusionnés')};
+ $('pe-del').onclick=()=>{S.places=S.places.filter(q=>pkey(q)!==pkey(p));save();close();render()}})}
+function setupScreen(){$('tabs').style.display='none';$('app').innerHTML=`<h1>Bienvenue</h1><p>Quelques infos pour pré-remplir tes saisies. <b>Tout est facultatif</b> et modifiable plus tard dans Réglages.</p>${setFieldsHTML(true)}
+ <div class="acts"><button class="btn" id="sskip">Passer</button><button class="btn pri" id="sgo">Enregistrer</button></div>`;
+ $('sskip').onclick=()=>{S.settings.setup=true;save();render()};$('sgo').onclick=()=>{setFieldsGet();S.settings.setup=true;save();render()}}
+
+/* ================== STATS ================== */
+let sy=new Date().getFullYear();
+const fH=ms=>{const m=Math.round(ms/60000);return Math.floor(m/60)+' h'+(m%60?' '+pad(m%60):'')};
+const fHM=min=>pad(Math.floor(min/60)%24)+':'+pad(Math.round(min)%60);
+const isDom=p=>norm(p&&p.n)==='domicile';
+function nightsIn(a,b){let n=0;const d=new Date(a);d.setHours(24,0,0,0);while(d.getTime()<b){n++;d.setDate(d.getDate()+1)}return n}
+function computeStats(){const A=analyze();const Y={};const mk=t=>{const d=new Date(t);return [d.getFullYear(),d.getMonth()]};
+ const box=(y,m)=>{const o=Y[y]=Y[y]||{months:{},tot:{}};return [o.months[m]=o.months[m]||{days:new Set(),we:new Set(),fer:new Set(),night:0,amp:0,nd:0,wep:0,rass:0,km:null,gas:0,L:{days:[],we:[],fer:[],night:[],amp:[],nd:[],wep:[],rass:[],km:[],gas:[]}},o]};
+ const av={};let curM='';const avAdd=(y,k,v)=>{for(const z of [y,'all',curM]){const o=av[z]=av[z]||{};const a=o[k]=o[k]||[0,0];a[0]+=v;a[1]++}};
+ for(const v of A.sv){const [y,m]=mk(v.s);curM=y+'-'+m;const [b]=box(y,m);const k=dk(v.s),w=kDate(k).getDay();const it={t:v.s,x:fD(v.s)+' · '+fT(v.s)+' → '+(v.e?fT(v.e):'…')+' · '+(v.ep&&v.ep.n?plStr(v.ep):'')};
+  if(!b.days.has(k)){b.L.days.push(it);if(w===0||w===6)b.L.we.push(it);if(feries(+k.slice(0,4)).has(k))b.L.fer.push(it)}
+  b.days.add(k);if(w===0||w===6)b.we.add(k);if(feries(+k.slice(0,4)).has(k))b.fer.add(k);
+  if(!v.e)continue;const amp=v.e-v.s,h=new Date(v.s).getHours();b.amp+=amp;b.L.amp.push({t:v.s,x:fD(v.s)+' · '+fDur(amp)});if(h>=12&&dk(v.e)!==k){b.night++;b.L.night.push(it)}
+  avAdd(y,'amp',amp);if(h<12){const ds=new Date(v.s),de=new Date(v.e);avAdd(y,'dep',ds.getHours()*60+ds.getMinutes());if(dk(v.e)===k)avAdd(y,'fin',de.getHours()*60+de.getMinutes())}}
+ for(const r of A.rests){if(!r.done)continue;const [y,m]=mk(r.from);curM=y+'-'+m;const [b]=box(y,m);
+  if(!r.weekly){if(r.a.ep&&r.a.ep.n&&!isDom(r.a.ep)){b.nd++;b.L.nd.push({t:r.from,x:fD(r.from)+' · '+plStr(r.a.ep)})}if(r.gap<24*HR)avAdd(y,'rep',r.gap);continue}
+  const st=wkStatus(r);if(st==='paye'||st==='rass'){const n=nightsIn(r.from,r.to),wx={t:r.from,x:fD(r.from)+' → '+fD(r.to)+' · '+plStr(r.a.ep)+' · '+fDur(r.gap)};b.nd+=n;b.L.nd.push({t:r.from,x:'Week-end '+(st==='rass'?'rassemblement':'payé')+' '+fD(r.from)+' → '+fD(r.to)+' · '+plStr(r.a.ep)+' · '+n+' nuit'+(n>1?'s':'')});if(st==='paye'){b.wep++;b.L.wep.push(wx)}else{b.rass++;const nm=(S.rass||{})[r.a.id];b.L.rass.push({...wx,id:r.a.id,x:(nm&&nm.name?nm.name+' · ':'')+wx.x})}}
+  let clean=true;for(let k=dk(r.from);k<=dk(r.to);k=addDays(k,1)){const w=kDate(k).getDay();if(absOn(k)||(w>0&&w<6&&feries(+k.slice(0,4)).has(k))){clean=false;break}}
+  if(clean)avAdd(y,'we',r.gap)}
+ for(const [k,o] of Object.entries(S.km||{})){const a=num(o.start),b2=num(o.end);if(a!=null&&b2!=null&&b2>a){const [y,m]=k.split('-').map(Number);const bb=box(y,m-1)[0];bb.km=b2-a;bb.L.km.push({t:new Date(y,m-1,1).getTime(),x:Mois(m-1)+' '+y+' · '+fkm(a)+' → '+fkm(b2)+' · '+fkm(b2-a)+' km'})}}
+ for(const p of S.pleins){if(!p.g||!p.g.on)continue;const v=num(p.g.v);if(v==null)continue;const [y,m]=mk(p.t);const bb=box(y,m)[0];bb.gas+=v;bb.L.gas.push({t:p.t,x:fD(p.t)+' · '+(p.lieu&&p.lieu.n||'')+' · '+f1(v)+' L'+(p.full===false?' (partiel)':'')})}
+ for(const o of Object.values(Y)){const t={days:0,we:0,fer:0,night:0,amp:0,nd:0,wep:0,rass:0,km:0,kmN:0,gas:0};
+  for(const b of Object.values(o.months)){t.days+=b.days.size;t.we+=b.we.size;t.fer+=b.fer.size;t.night+=b.night;t.amp+=b.amp;t.nd+=b.nd;t.wep+=b.wep;t.rass+=b.rass;t.gas+=b.gas;if(b.km!=null){t.km+=b.km;t.kmN++}for(const k in b.L)(t.L=t.L||{})[k]=(t.L[k]||[]).concat(b.L[k])}o.tot=t}
+ return {Y,av}}
+const mTot=b=>({L:b.L,days:b.days.size,we:b.we.size,fer:b.fer.size,night:b.night,amp:b.amp,nd:b.nd,wep:b.wep,rass:b.rass,km:b.km,kmN:b.km!=null?1:0,gas:b.gas});
+const avg=(x,k)=>x&&x[k]&&x[k][1]?x[k][0]/x[k][1]:null;
+const ROWS=[['Jours travaillés',t=>t.days,'days'],['Sam. / dim. travaillés',t=>t.we,'we'],['Fériés travaillés',t=>t.fer,'fer'],['Services de nuit',t=>t.night,'night'],['Amplitude cumulée',t=>fH(t.amp||0),'amp'],['Nuits dehors',t=>t.nd,'nd'],['Week-ends payés',t=>t.wep,'wep'],['Rassemblements',t=>t.rass,'rass'],['Kilomètres',t=>t.kmN?fkm(t.km):'—','km'],['Gasoil',t=>t.gas?fkm(t.gas)+' L':'—','gas']];
+let tileL=null;
+const AROWS=[['Amplitude moyenne','amp',fDur],['Heure de départ','dep',fHM],['Heure de fin de journée','fin',fHM],['Repos entre deux journées','rep',fDur],['Durée d\'un week-end','we',fDur]];
+let smk=null,cmp=null;
+function statTiles(t){tileL=t.L||{};return `<div class="tiles" id="stl">${ROWS.map(([l,f,k])=>`<div class="stt" data-k="${k}" data-l="${esc(l)}"><span>${l}</span><b>${f(t)??0}</b></div>`).join('')}</div>`}
+function tilesMount(){on('stl','onclick',e=>{const d=e.target.closest('[data-k]');if(!d)return;const L=((tileL||{})[d.dataset.k]||[]).slice().sort((a,b)=>a.t-b.t);
+ sheet(`<h3>${d.dataset.l} : ${esc(d.querySelector('b').textContent)}</h3><ul class="list" id="tll">${L.map(i=>`<li ${i.id?`data-id="${i.id}"`:''}><div class="t">${esc(i.x)}</div>${i.id?'<span class="muted">›</span>':''}</li>`).join('')||'<li class="muted">Rien pour cette période</li>'}</ul><div class="acts"><button class="btn full" id="tlx">Fermer</button></div>`,(el,c)=>{$('tlx').onclick=c;$('tll').onclick=e=>{const li=e.target.closest('li[data-id]');if(li){c();openRass(li.dataset.id)}}})})}
+function openRass(id){const A=analyze();const r=A.weeklies.find(x=>x.a.id===id);if(!r)return;S.rass=S.rass||{};const f=S.rass[id]||{};
+ sheet(`<h3>${esc(f.name||'Rassemblement')}</h3><p class="muted" style="margin-top:-6px">${fD(r.from)} → ${fD(r.to)} · ${esc(plStr(r.a.ep))} · ${fDur(r.gap)}</p>
+ <div class="fg"><label>Nom du rassemblement<input id="rs-n" value="${esc(f.name||'')}"></label></div>
+ <div class="fg"><label>Notes<textarea id="rs-t" rows="3" style="display:block;width:100%;font-size:16px;font-family:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:4px">${esc(f.notes||'')}</textarea></label></div>
+ <label>Photos</label><div id="rs-ph" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px"></div>
+ <label class="btn full" style="display:flex;align-items:center;justify-content:center;margin-top:8px;color:var(--ink);font-size:16px">+ Ajouter des photos<input type="file" id="rs-pa" accept="image/*" multiple style="display:none"></label>
+ <div class="acts"><button class="btn" id="rs-x">Fermer</button><button class="btn pri" id="rs-ok">Enregistrer</button></div>`,(el,close)=>{
+ const keep=()=>{S.rass[id]={name:$('rs-n').value.trim(),notes:$('rs-t').value};save()};
+ const box=$('rs-ph');const draw=()=>phAll().then(a=>{const mine=a.filter(p=>p.rass===id).sort((x,y)=>x.t-y.t);box.innerHTML=mine.map(p=>`<img src="${p.data}" data-id="${p.id}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px">`).join('')||'<span class="muted" style="grid-column:1/-1">Aucune photo</span>'}).catch(()=>{box.innerHTML='<span class="muted">Photos indisponibles ici</span>'});draw();
+ box.onclick=e=>{const im=e.target.closest('img[data-id]');if(!im)return;keep();close();sheet(`<img src="${im.src}" style="width:100%;border-radius:10px"><div class="acts"><button class="btn red" id="phd">Supprimer</button><button class="btn" id="phx">Retour</button></div>`,(e2,c2)=>{$('phx').onclick=()=>{c2();openRass(id)};$('phd').onclick=async()=>{await phDel(im.dataset.id);c2();openRass(id)}})};
+ $('rs-pa').onchange=async e=>{const fs=[...e.target.files];e.target.value='';let n=0;for(const f of fs){try{const d=await shrink(f);await phPut({id:uid(),rass:id,t:Date.now(),data:d});n++}catch(x){}}toast(n+' photo'+(n>1?'s':'')+' ajoutée'+(n>1?'s':''));draw()};
+ $('rs-x').onclick=()=>{keep();close();render()};$('rs-ok').onclick=()=>{keep();close();render();toast('Rassemblement enregistré')}})}
+function statsHTML(){const {Y,av}=computeStats();const years=Object.keys(Y).map(Number).sort();if(!years.includes(sy))sy=years[years.length-1]||new Date().getFullYear();
+ const o=Y[sy]||{months:{},tot:{}};const a=av[sy]||{},g=av.all||{};const months=Object.keys(o.months).map(Number).sort((x,y)=>y-x);
+ return `<h1>Stats</h1><div class="seg">${years.map(y=>`<button data-y="${y}" class="${y===sy?'on':''}">${y}</button>`).join('')}</div>
+ <h2>Totaux ${sy}</h2>${statTiles(o.tot)}
+ <h2>Moyennes</h2><ul class="list"><li><div class="t"></div><span class="muted">${sy}</span><span class="muted" style="min-width:74px;text-align:right">Toujours</span></li>
+ ${AROWS.map(([l,k,f])=>{const v1=avg(a,k),v2=avg(g,k);return `<li><div class="t">${l}</div><b>${v1!=null?f(v1):'—'}</b><span class="muted" style="min-width:74px;text-align:right">${v2!=null?f(v2):'—'}</span></li>`}).join('')}</ul>
+ <h2>Mois</h2><button class="btn full" id="scmp">Comparer des mois</button><ul class="list" id="smon">${months.map(mm=>`<li data-m="${sy}-${mm}"><div class="t"><b>${Mois(mm)} ${sy}</b></div><span class="muted">›</span></li>`).join('')}</ul>`}
+function statMHTML(){const {Y,av}=computeStats();const [y,m]=smk.split('-').map(Number);const b=Y[y]&&Y[y].months[m];if(!b){view='stat';return statsHTML()}const a=av[y+'-'+m]||{};
+ return `<div class="row" style="margin-bottom:4px"><button class="btn sm" id="bk-st">‹ Stats</button></div><h1>${Mois(m)} ${y}</h1>${statTiles(mTot(b))}
+ <h2>Moyennes</h2><ul class="list">${AROWS.map(([l,k,f])=>{const v=avg(a,k);return `<li><div class="t">${l}</div><b>${v!=null?f(v):'—'}</b></li>`}).join('')}</ul>
+ <button class="btn full" id="smcmp" style="margin-top:14px">Comparer avec un autre mois</button>`}
+function allMonths(Y){const r=[];for(const y of Object.keys(Y).map(Number).sort((a,b)=>b-a))for(const m of Object.keys(Y[y].months).map(Number).sort((a,b)=>b-a))r.push(y+'-'+m);return r}
+function statCHTML(){const {Y,av}=computeStats();const all=allMonths(Y);if(!cmp)cmp=all.slice(0,2).reverse();cmp=cmp.filter(k=>all.includes(k));
+ const lab=k=>{const [y,m]=k.split('-').map(Number);return Mois(m).slice(0,4)+'. '+String(y).slice(2)};
+ const cols=cmp.map(k=>{const [y,m]=k.split('-').map(Number);return {k,t:mTot(Y[y].months[m]),a:av[k]||{}}});
+ const th=`<tr><th></th>${cols.map((c,i)=>`<th><button class="btn sm" data-chg="${i}" style="padding:0 8px">${lab(c.k)}</button>${cols.length>1?`<div><button class="btn sm" data-del="${i}" style="min-height:26px;margin-top:4px;padding:0 8px">✕</button></div>`:''}</th>`).join('')}</tr>`;
+ const tr=ROWS.map(([l,f])=>`<tr><td>${l}</td>${cols.map(c=>`<td>${f(c.t)??0}</td>`).join('')}</tr>`).join('')+AROWS.map(([l,k,f])=>`<tr><td>${l}</td>${cols.map(c=>{const v=avg(c.a,k);return `<td>${v!=null?f(v):'—'}</td>`}).join('')}</tr>`).join('');
+ return `<div class="row" style="margin-bottom:4px"><button class="btn sm" id="bk-st">‹ Stats</button></div><h1>Comparer</h1>
+ <div class="scroll"><table class="cmpt"><thead>${th}</thead><tbody>${tr}</tbody></table></div>
+ <button class="btn full" id="cadd" style="margin-top:12px">+ Ajouter un mois</button>`}
+function pickMonth(cb){const {Y}=computeStats();const all=allMonths(Y);sheet(`<h3>Choisir un mois</h3><ul class="list" id="pkm">${all.map(k=>{const [y,m]=k.split('-').map(Number);return `<li data-k="${k}"><div class="t">${Mois(m)} ${y}</div></li>`}).join('')}</ul><div class="acts"><button class="btn full" id="pkx">Annuler</button></div>`,(el,close)=>{$('pkx').onclick=close;$('pkm').onclick=e=>{const li=e.target.closest('li[data-k]');if(li){close();cb(li.dataset.k)}}})}
+function statsMount(){tilesMount();document.querySelectorAll('[data-y]').forEach(b=>b.onclick=()=>{sy=+b.dataset.y;render()});
+ on('smon','onclick',e=>{const li=e.target.closest('li[data-m]');if(li){smk=li.dataset.m;view='statm';render();scrollTo(0,0)}});on('scmp','onclick',()=>{cmp=null;view='statc';render();scrollTo(0,0)});on('bk-more','onclick',openMore)}
+function statMMount(){tilesMount();on('bk-st','onclick',()=>{view='stat';render()});on('smcmp','onclick',()=>{cmp=[smk];pickMonth(k=>{cmp.push(k);view='statc';render();scrollTo(0,0)})})}
+function statCMount(){on('bk-st','onclick',()=>{view='stat';render()});on('cadd','onclick',()=>pickMonth(k=>{cmp.push(k);render()}));
+ document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{cmp.splice(+b.dataset.del,1);render()});
+ document.querySelectorAll('[data-chg]').forEach(b=>b.onclick=()=>pickMonth(k=>{cmp[+b.dataset.chg]=k;render()}))}
+
+/* ================== navigation ================== */
+const IC={more:'<circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/>',stat:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',home:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',fuel:'<path d="M4 21V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v16M3 21h13M15 9h2a2 2 0 0 1 2 2v5a1.5 1.5 0 0 0 3 0V8l-3-3M7 7h5"/>',plan:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',doc:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h8"/>',set:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'};
+const TABS=[['home','Accueil','home'],['pl','Pleins','fuel'],['plan','Planning','plan'],['rec','Récaps','doc'],['more','Plus','more']];
+const MOREV=['aires','stat','statm','statc','trucks','truck','places','backup','set','data'];
+let view='home';
+const V={aires:[airesHTML,airesMount],statm:[statMHTML,statMMount],statc:[statCHTML,statCMount],stat:[()=>back('').replace('<h1></h1>','')+statsHTML(),statsMount],trucks:[trucksHTML,moreMount],truck:[truckHTML,truckMount],places:[placesHTML,moreMount],backup:[backupHTML,moreMount],data:[dataHTML,moreMount],home:[homeHTML,homeMount],pl:[pleinsHTML,pleinsMount],plan:[planningHTML,planningMount],rec:[recapsHTML,recapsMount],set:[setHTML,moreMount]};
+function render(){try{const ct=curTruck();if(ct&&S.settings.setup&&ct.immat!==S.settings.tracteur&&S.trucks[S.trucks.length-1]===ct){S.settings.tracteur=ct.immat;save()}}catch(e){}document.body.classList.toggle('noscroll',view==='home'&&!!S.settings.setup);if(!S.settings.setup)return setupScreen();$('tabs').style.display='';
+ const A=analyze();const dot={plan:A.pendingWk.length>0};
+ $('tabs').innerHTML=TABS.map(([k,l,i])=>`<button data-v="${k}" class="${view===k||(k==='more'&&MOREV.includes(view))?'on':''}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${IC[i]}</svg>${l}${dot[k]?'<span class="dot"></span>':''}</button>`).join('');
+ const [h,mo]=V[view];try{$('app').innerHTML=h();mo()}catch(e){$('app').innerHTML='<div class="banner r">Erreur d\'affichage : '+esc(e.message)+'</div>';console.error(e)}}
+$('tabs').onclick=e=>{const b=e.target.closest('button[data-v]');if(!b)return;if(b.dataset.v==='more')return openMore();view=b.dataset.v;render();scrollTo(0,0)};
+setInterval(()=>{if(view==='home'&&!document.querySelector('.ov'))render()},30000);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)return;startGPS();if(view==='home'&&!document.querySelector('.ov'))render()});
+document.addEventListener('touchmove',e=>{if(e.touches.length===1&&document.body.classList.contains('noscroll')&&!e.target.closest('.ov')&&(!window.visualViewport||visualViewport.scale<=1.01))e.preventDefault()},{passive:false});
+render();startGPS();loadCommunes(false).then(()=>loadAires(false));
+try{if('serviceWorker' in navigator&&location.protocol==='https:'&&!/claude/.test(location.hostname))navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}
+}
+</script>
+</body>
+</html>
