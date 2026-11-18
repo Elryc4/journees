@@ -1,5 +1,5 @@
 // Copie hors connexion de l'appli. Changer VERSION à chaque mise à jour.
-const VERSION = 'v1.0.1';
+const VERSION = 'v1.0.2';
 const CACHE = 'journees-' + VERSION;
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
 

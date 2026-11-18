@@ -231,25 +231,31 @@ function aireCommune(n,la,lo){comIndex();const k=' '+norm(n)+' ';let c=null,cd=1
  let big=null;for(const x of BIGL)if(k.includes(' '+x[4]+' ')&&dist(la,lo,x[2],x[3])<40&&(!big||x[5]>big[5]))big=x;
  const r=big||c;return r&&cd<30?[r[0],r[1],big?1:0]:null}
 const OVP=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter','https://overpass.private.coffee/api/interpreter'];let airErr='',airStep='';
-async function ovp(q){let last='';for(const u of OVP){try{const ctl=new AbortController();const tm=setTimeout(()=>ctl.abort(),240000);
+async function ovp(q){let last='';for(const u of OVP){let tm;try{const ctl=new AbortController();tm=setTimeout(()=>ctl.abort(),120000);
   const r=await fetch(u,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(q),signal:ctl.signal});clearTimeout(tm);
-  if(!r.ok){last='serveur '+r.status;continue}const j=await r.json();if(j&&j.elements)return j;last='réponse vide'}catch(e){last=e&&e.name==='AbortError'?'délai dépassé':'réseau'}}throw new Error(last)}
-async function loadAires(force){
+  if(!r.ok){last='serveur '+r.status;continue}const j=await r.json();if(j&&j.elements)return j;last='réponse vide'}catch(e){clearTimeout(tm);last=e&&e.name==='AbortError'?'délai dépassé':'réseau'}}throw new Error(last)}
+let airBusy=false;async function loadAires(force){if(airBusy)return;airBusy=true;try{await _loadAires(force)}finally{airBusy=false;if(view==='data')render()}}
+async function _loadAires(force){
  try{if(!force){const a=await idbGet('aires');if(a&&a.length){AIR=a.map(airRow);airState='ok';return}}}catch(e){}
  if(!navigator.onLine){airState='absent';if(view==='data')render();return}
  airState='chargement';airErr='';airStep='liste des aires';if(view==='data')render();
- try{if(!COM.length||!COM[0][5])await loadCommunes(true);if(!COM.length)throw new Error('communes manquantes');
-  // 1) les aires (léger)
-  const j=await ovp('[out:json][timeout:180];area["ISO3166-1"="FR"][admin_level=2]->.fr;nwr["highway"~"^(services|rest_area)$"]["name"](area.fr);out tags center qt;');
-  const seen=new Map(),arr=[];for(const e of j.elements){const t=e.tags||{};const la=e.lat??(e.center&&e.center.lat),lo=e.lon??(e.center&&e.center.lon),n=t.name;if(la==null||!n)continue;
-   const c=aireCommune(n,la,lo);if(!c)continue;const k=norm(n)+'|'+c[0]+'|'+c[1];if(seen.has(k))continue;const row=[n,+la.toFixed(4),+lo.toFixed(4),c[0],c[1],c[2],String(t.ref||'').match(/^A\s?\d+/i)?t.ref.replace(/\s+/g,'').toUpperCase():''];seen.set(k,row);arr.push(row)}
-  if(arr.length<50)throw new Error('trop peu d\'aires ('+arr.length+')');
-  await idbPut('aires',arr).catch(()=>{});AIR=arr.map(airRow);airState='ok';airStep='numéros d\'autoroute';if(view==='data')render();
-  // 2) numéros d'autoroute (centres des tronçons, plus lourd mais facultatif)
-  try{const m=await ovp('[out:json][timeout:240];area["ISO3166-1"="FR"][admin_level=2]->.fr;way["highway"="motorway"]["ref"](area.fr);out tags center qt;');
-   const G={};for(const w of m.elements){if(!w.center||!w.tags||!w.tags.ref)continue;const ref=String(w.tags.ref).split(';')[0].replace(/\s+/g,'').toUpperCase();const k=Math.round(w.center.lat*20)+','+Math.round(w.center.lon*20);(G[k]=G[k]||[]).push([w.center.lat,w.center.lon,ref])}
-   for(const row of arr){if(row[6])continue;const gy=Math.round(row[1]*20),gx=Math.round(row[2]*20);let b=null,bd=1.5;for(let i=-1;i<=1;i++)for(let k=-1;k<=1;k++)for(const w of (G[(gy+i)+','+(gx+k)]||[])){const d=dist(row[1],row[2],w[0],w[1]);if(d<bd){bd=d;b=w}}if(b)row[6]=b[2]}
-   await idbPut('aires',arr).catch(()=>{});AIR=arr.map(airRow)}catch(e){airErr='numéros d\'autoroute non récupérés ('+e.message+'), réessaie plus tard'}
+ try{if(!COM.length||!COM.some(x=>x[5]>0))await loadCommunes(true);if(!COM.length)throw new Error('communes manquantes');
+  // découpage de la France en zones pour des requêtes légères
+  const T=[];for(let la=41.3;la<51.2;la+=2.5)for(let lo=-5.2;lo<9.7;lo+=3.75)T.push([la,lo,Math.min(la+2.5,51.2),Math.min(lo+3.75,9.7)]);
+  const seen=new Map(),arr=[];let okZ=0,lastE='';
+  for(let i=0;i<T.length;i++){const b=T[i].map(x=>x.toFixed(2)).join(',');airStep='liste des aires (zone '+(i+1)+'/'+T.length+')';if(view==='data')render();
+   try{const j=await ovp('[out:json][timeout:90][bbox:'+b+'];area["ISO3166-1"="FR"][admin_level=2]->.fr;nwr["highway"~"^(services|rest_area)$"]["name"](area.fr);out tags center qt;');okZ++;
+    for(const e of j.elements){const t=e.tags||{};const la=e.lat??(e.center&&e.center.lat),lo=e.lon??(e.center&&e.center.lon),n=t.name;if(la==null||!n)continue;
+     const c=aireCommune(n,la,lo);if(!c)continue;const k=norm(n)+'|'+c[0]+'|'+c[1];if(seen.has(k))continue;const row=[n,+la.toFixed(4),+lo.toFixed(4),c[0],c[1],c[2],/^A\s?\d+/i.test(String(t.ref||''))?String(t.ref).replace(/\s+/g,'').toUpperCase():''];seen.set(k,row);arr.push(row)}}catch(e){lastE=e.message}}
+  if(arr.length<50)throw new Error((lastE||'trop peu d\'aires')+' · '+okZ+'/'+T.length+' zones');
+  await idbPut('aires',arr).catch(()=>{});AIR=arr.map(airRow);airState='ok';if(okZ<T.length)airErr=(T.length-okZ)+' zone(s) non récupérée(s), relance plus tard pour compléter';if(view==='data')render();
+  // numéros d'autoroute, zone par zone
+  let okM=0;const G={};
+  for(let i=0;i<T.length;i++){const b=T[i].map(x=>x.toFixed(2)).join(',');airStep='numéros d\'autoroute (zone '+(i+1)+'/'+T.length+')';if(view==='data')render();
+   try{const m=await ovp('[out:json][timeout:90][bbox:'+b+'];way["highway"="motorway"]["ref"];out tags center qt;');okM++;
+    for(const w of m.elements){if(!w.center||!w.tags||!w.tags.ref)continue;const ref=String(w.tags.ref).split(';')[0].replace(/\s+/g,'').toUpperCase();const k=Math.round(w.center.lat*20)+','+Math.round(w.center.lon*20);(G[k]=G[k]||[]).push([w.center.lat,w.center.lon,ref])}}catch(e){}}
+  for(const row of arr){if(row[6])continue;const gy=Math.round(row[1]*20),gx=Math.round(row[2]*20);let bb=null,bd=1.5;for(let i=-1;i<=1;i++)for(let k=-1;k<=1;k++)for(const w of (G[(gy+i)+','+(gx+k)]||[])){const d=dist(row[1],row[2],w[0],w[1]);if(d<bd){bd=d;bb=w}}if(bb)row[6]=bb[2]}
+  await idbPut('aires',arr).catch(()=>{});AIR=arr.map(airRow);if(okM<T.length&&!airErr)airErr='numéros d\'autoroute incomplets ('+okM+'/'+T.length+' zones), relance plus tard';
   airStep=''}catch(e){airState='erreur';airErr=e.message||'inconnu';airStep=''}
  if(view==='data')render()}
 function resolveAlias(n){const k=norm(n);if(!k)return null;
@@ -887,7 +893,7 @@ function moreMount(){on('bk-more','onclick',openMore);
  on('sbk','onclick',doBackup);on('srs','onchange',e=>{const f=e.target.files[0];if(f)doRestore(f);e.target.value=''});
  on('spb','onclick',photoBackup);on('spr','onchange',e=>{const f=e.target.files[0];if(f)photoRestore(f);e.target.value=''});
  if($('phc'))phAll().then(a=>{if($('phc'))$('phc').textContent='Photos enregistrées : '+a.length}).catch(()=>{});
- on('sairl','onclick',()=>{view='aires';render();scrollTo(0,0)});on('scom','onclick',()=>{loadCommunes(true);render()});on('sair','onclick',()=>loadAires(true));
+ on('sairl','onclick',()=>{view='aires';render();scrollTo(0,0)});on('scom','onclick',()=>{loadCommunes(true);render()});on('sair','onclick',()=>{if(airBusy){toast('Téléchargement déjà en cours…');return}const b=$('sair');if(b){b.textContent='…';b.disabled=true}toast('Téléchargement des aires lancé');loadAires(true).catch(e=>{airState='erreur';airErr=String(e&&e.message||e);render()})});
  on('spls','onclick',e=>{const b=e.target.closest('button');if(b){plSort=b.dataset.k;try{localStorage.setItem('jp-plsort',plSort)}catch(x){};const y=scrollY;render();scrollTo(0,y)}});
  on('spl','onclick',e=>{const li=e.target.closest('li[data-k]');if(!li)return;const p=S.places.find(q=>pkey(q)===li.dataset.k);if(p)openPlaceEdit(p)});
  on('sal','onclick',e=>{const b=e.target.closest('button[data-i]');if(!b)return;S.aliases.splice(+b.dataset.i,1);save();render()})}
@@ -1066,6 +1072,7 @@ $('tabs').onclick=e=>{const b=e.target.closest('button[data-v]');if(!b)return;if
 setInterval(()=>{if(view==='home'&&!document.querySelector('.ov'))render()},30000);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)return;startGPS();if(view==='home'&&!document.querySelector('.ov'))render()});
 document.addEventListener('touchmove',e=>{if(e.touches.length===1&&document.body.classList.contains('noscroll')&&!e.target.closest('.ov')&&(!window.visualViewport||visualViewport.scale<=1.01))e.preventDefault()},{passive:false});
+window.addEventListener('unhandledrejection',e=>{try{toast('Erreur : '+esc(String(e.reason&&e.reason.message||e.reason)))}catch(x){}});window.addEventListener('error',e=>{try{toast('Erreur : '+esc(String(e.message)))}catch(x){}});
 render();startGPS();loadCommunes(false).then(()=>loadAires(false));
 try{if('serviceWorker' in navigator&&location.protocol==='https:'&&!/claude/.test(location.hostname))navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}
 }
