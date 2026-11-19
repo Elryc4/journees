@@ -34,7 +34,7 @@ h2{font-size:17px;margin:22px 0 8px}
 .bigb{border:0;border-radius:20px;color:#fff;font-weight:800;font-size:22px;letter-spacing:.04em;min-height:132px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;box-shadow:0 3px 0 rgba(0,0,0,.18)}
 .bigb small{font-weight:500;font-size:13px;letter-spacing:0;opacity:.85}
 .bigb:active{transform:translateY(2px);box-shadow:none}
-.bdep{background:var(--go)}.barr{background:var(--arr)}
+.bdep{background:var(--go)}.barr{background:var(--arr)}.bigb.st-g{background:#7d838a}.bigb.st-r{background:#b44a42}
 .tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .tile{background:var(--chip);border-radius:12px;padding:10px 12px}
 .tile b{display:block;font-size:30px;line-height:1.1;font-variant-numeric:tabular-nums}
@@ -123,7 +123,7 @@ body.noscroll h1{margin:2px 0 6px}body.noscroll .card{margin:6px 0}
 <script>
 {
 /* ================== utilitaires ================== */
-const APP_VERSION='1.0.4';const HR=3600e3, DAY=86400e3, KEY='jp-data-v1';
+const APP_VERSION='1.0.5';const HR=3600e3, DAY=86400e3, KEY='jp-data-v1';
 const pad=n=>String(n).padStart(2,'0');
 const fT=ms=>{const d=new Date(ms);return pad(d.getHours())+':'+pad(d.getMinutes())};
 const dk=ms=>{const d=new Date(ms);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
@@ -513,7 +513,7 @@ function homeHTML(){const A=analyze(),now=A.now;let h='';
   ${A.openDebts.length?`<div class="muted" style="margin-top:8px">Pour rattraper ${fDur(A.openDebts[0].h)} : repartir après <b>${fT(A.last.e+11*HR+A.openDebts[0].h)}</b></div>`:''}`}
  else h+=`<div><b>Bienvenue.</b> Appuie sur DÉPART pour commencer ta journée.</div>`;
  h+='</div>';
- h+=`<div class="big2"><button class="bigb bdep" id="bdep">DÉPART<small>${A.open?'en cours':'commencer'}</small></button><button class="bigb barr" id="barr">ARRIVÉE<small>${A.open?'terminer':'—'}</small></button></div>`;
+ h+=`<div class="big2"><button class="bigb bdep ${A.open?'st-g':''}" id="bdep">DÉPART<small>${A.open?'en cours':'commencer'}</small></button><button class="bigb barr ${A.open?'st-r':'st-g'}" id="barr">ARRIVÉE<small>${A.open?'terminer':'—'}</small></button></div>`;
  const bx=(n,max,on,cls)=>Array.from({length:max},(_,i)=>`<button class="box ${i<on?'on':''} ${cls}" data-i="${i}" aria-label="case ${i+1}"></button>`).join('');
  h+=`<div class="card"><div class="ctr"><div><b>Conduite 10 h</b><div class="muted">${A.drv}/2 utilisées</div></div><div class="boxes" id="drvb">${bx(0,2,A.drv,'')}</div></div>
  <div class="ctr"><div><b>Repos réduits</b><div class="muted">${A.reduced}/3 · calcul automatique</div></div><div class="boxes">${bx(0,3,A.reduced,'auto')}</div></div></div>`;
@@ -1088,7 +1088,10 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden)return;star
 document.addEventListener('touchmove',e=>{if(e.touches.length===1&&document.body.classList.contains('noscroll')&&!e.target.closest('.ov')&&(!window.visualViewport||visualViewport.scale<=1.01))e.preventDefault()},{passive:false});
 window.addEventListener('unhandledrejection',e=>{try{toast('Erreur : '+esc(String(e.reason&&e.reason.message||e.reason)))}catch(x){}});window.addEventListener('error',e=>{try{toast('Erreur : '+esc(String(e.message)))}catch(x){}});
 render();startGPS();loadCommunes(false).then(()=>loadAires(false));
-try{if('serviceWorker' in navigator&&location.protocol==='https:'&&!/claude/.test(location.hostname))navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}
+try{if('serviceWorker' in navigator&&location.protocol==='https:'&&!/claude/.test(location.hostname)){const had=!!navigator.serviceWorker.controller;let swReg=null;
+ navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{swReg=r;r.update().catch(()=>{})}).catch(()=>{});
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&swReg)swReg.update().catch(()=>{})});
+ let done=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(done||!had)return;done=true;if(!document.querySelector('.ov'))location.reload();else toast('Mise à jour installée : elle s\'appliquera à la prochaine ouverture')})}}catch(e){}
 }
 </script>
 </body>
