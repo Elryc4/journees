@@ -123,7 +123,7 @@ body.noscroll h1{margin:2px 0 6px}body.noscroll .card{margin:6px 0}
 <script>
 {
 /* ================== utilitaires ================== */
-const APP_VERSION='1.0.6';const HR=3600e3, DAY=86400e3, KEY='jp-data-v1';
+const APP_VERSION='1.1';const HR=3600e3, DAY=86400e3, KEY='jp-data-v1';
 const pad=n=>String(n).padStart(2,'0');
 const fT=ms=>{const d=new Date(ms);return pad(d.getHours())+':'+pad(d.getMinutes())};
 const dk=ms=>{const d=new Date(ms);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
@@ -409,13 +409,15 @@ function openDepart(){const A=analyze();const now=Date.now();
  $('dok').onclick=async()=>{const ms=dtGet('d');if(!ms)return toast('Date ou heure manquante');let p=await fixAire(pl.get());if(!(norm(p.n)===norm(pre.n)&&(p.d||'')===(pre.d||''))){p=await farCheck(p,ms);if(!p)return}
   if(!(await absCheck(ms)))return;
   const A2=analyze();
-  const kmv=$('dkm').value.trim();if(A2.open){A2.open.s=ms;A2.open.sp=p;A2.open.kmS=kmv}else{
+  const kmv=$('dkm').value.trim();let prevS=null,newS=null;if(A2.open){A2.open.s=ms;A2.open.sp=p;A2.open.kmS=kmv}else{prevS=A2.last;
    if(A2.last&&A2.last.e&&ms<A2.last.e)return toast('Ce départ est avant ta dernière arrivée ('+fT(A2.last.e)+')');
-   S.services.push({id:uid(),s:ms,sp:p,e:null,ep:null,kmS:kmv})}
+   newS={id:uid(),s:ms,sp:p,e:null,ep:null,kmS:kmv};S.services.push(newS)}
   learnPlace(p);save();close();render();toast('Départ enregistré à '+fT(ms));
   const A3=analyze();const pr=A3.rests.find(r=>r.done&&r.b&&r.b.s===ms);
-  if(pr&&pr.weekly&&!wkStatus(pr))askWeekend(pr)}})}
-async function askWeekend(r){const p=r.a.ep;const btns=[{t:'Week-end payé',v:'paye',c:'pri'},{t:'Rassemblement',v:'rass',c:'dark'},{t:'Non payé (autre)',v:'np'}];
+  if(pr&&pr.weekly&&!wkStatus(pr))await askWeekend(pr);
+  if(prevS&&newS&&prevS.absOut&&prevS.e&&dk(ms)>prevS.absOut)afterReturn(prevS,newS)}})}
+async function askWeekend(r){return _askWeekend(r)}
+async function _askWeekend(r){const p=r.a.ep;const btns=[{t:'Week-end payé',v:'paye',c:'pri'},{t:'Rassemblement',v:'rass',c:'dark'},{t:'Non payé (autre)',v:'np'}];
  if(!S.settings.depotNom)btns.push({t:'Dépôt',v:'depot'});if(!S.settings.domDep)btns.push({t:'Domicile',v:'dom'});
  btns.push({t:'Plus tard',v:null});
  const v=await ask('Week-end à '+esc(plStr(p)),'Repos de '+fDur(r.gap)+' du '+fD(r.from)+' au '+fD(r.to)+'.',btns);
@@ -432,7 +434,53 @@ function openArrivee(pre){const A=analyze();const now=typeof pre==='number'?pre:
   if(!svc){const ds=dtGet('ad');if(!ds)return toast('Heure de départ manquante');if(ds>=ms)return toast('Le départ doit être avant l\'arrivée');
    if(!(await absCheck(ds)))return;svc={id:uid(),s:ds,sp:await fixAire(pd.get()),e:null,ep:null};S.services.push(svc);learnPlace(svc.sp)}
   else{if(ms<=svc.s)return toast('L\'arrivée doit être après le départ ('+fT(svc.s)+')');if(dk(ms)!==dk(svc.s)&&absOn(dk(ms))&&!(await absCheck(ms)))return}
-  svc.e=ms;svc.ep=p;svc.kmE=$('akm').value.trim();learnPlace(p,pl.co());save();close();render();toast('Arrivée enregistrée à '+fT(ms))}})}
+  svc.e=ms;svc.ep=p;svc.kmE=$('akm').value.trim();learnPlace(p,pl.co());save();close();render();toast('Arrivée enregistrée à '+fT(ms));afterArrival(svc)}})}
+
+/* ================== absences : départ / retour ================== */
+const truckAt=t=>(S.trucks||[]).slice().reverse().find(x=>(x.service?inputsToMs(x.service,'00:00'):x.since)<=t&&(!x.until||t<=x.until))||null;
+const tankCap=tr=>tr?(tr.tanks||[]).reduce((a,v)=>a+(num(v)||0),0):0;
+function absAfter(svc){const t=dk(svc.e);const a0=absOn(t);if(a0&&dk(svc.s)<t)return a0;
+ let j=addDays(t,1);for(let i=0;i<12;i++){const x=absOn(j);if(x)return x;if(!isGrey(j))return null;j=addDays(j,1)}return null}
+function gaugeHTML(id,tr){const pc=tr&&tr.jauge==='%';return `<div class="fg"><label>Niveau de jauge : <b id="${id}-v">non renseigné</b></label><input type="range" id="${id}" min="0" max="${pc?100:8}" step="${pc?5:1}" value="${pc?50:4}" data-p="${pc?1:0}" style="width:100%;margin-top:10px"></div>`}
+function gaugeMount(id){const r=$(id);if(!r)return ()=>null;let set=false;r.oninput=()=>{set=true;$(id+'-v').textContent=gStr(+r.value/(r.dataset.p==='1'?100:8),r.dataset.p==='1')};return ()=>set?+r.value/(r.dataset.p==='1'?100:8):null}
+function gStr(f,pc){if(f==null)return '—';if(pc)return Math.round(f*100)+' %';const n=Math.round(f*8);return n===0?'vide':n===8?'plein (8/8)':n+'/8'}
+function afterSheet(html,mount,after){sheet(html,(el,close)=>{let done=false;const fin=()=>{close();if(!done){done=true;after&&after()}};el.querySelector('.shx').onclick=fin;el.parentNode.addEventListener('click',e=>{if(e.target===el.parentNode&&!done){done=true;after&&after()}});mount(el,fin)})}
+async function afterArrival(svc){try{if(!svc||!svc.e)return;const a=absAfter(svc);if(!a)return;
+ svc.absOut=a.to;svc.absType=a.type;const tr=truckAt(svc.e);
+ if(svc.gE==null&&tr&&S.pleins.some(p=>p.immat===tr.immat&&p.full!==false&&p.g&&p.g.on&&dk(p.t)===dk(svc.e)&&p.t<=svc.e))svc.gE=1;
+ const t=dk(svc.e),d=new Date(svc.e),y=d.getFullYear(),m=d.getMonth(),N=new Date(y,m+1,0).getDate();
+ const kEnd=!kmGet(y,m).end&&isLastWorkDay(t);const setEnd=v=>{S.km=S.km||{};S.km[mkey(y,m)]={...kmGet(y,m),end:v}};
+ if(kEnd&&svc.kmE)setEnd(svc.kmE);save();render();
+ const conge=a.type==='CONGÉ',needKm=!svc.kmE,needG=svc.gE==null;const per=`${ABS[a.type]} du ${fK(a.from)} au ${fK(a.to)}`;
+ if(!needKm&&!needG){if(conge)await ask('Bonnes vacances !',per+'.',[{t:'Merci',v:1,c:'pri'}]);return}
+ sheet(`<h3>${conge?'Bonnes vacances !':'Avant ton absence'}</h3><p class="muted">${per}</p><p>${conge?'Avant ton départ, veux-tu renseigner ces informations ?':'Veux-tu renseigner ces informations ?'}</p>
+  ${needKm?`<div class="fg"><label>Kilométrage${kEnd?' (vaut aussi KMS au '+N+')':''}<input id="vx-km" type="number" inputmode="numeric"></label></div>`:''}${needG?gaugeHTML('vx-g',tr):''}
+  <div class="acts"><button class="btn" id="vx-x">Plus tard</button><button class="btn pri" id="vx-ok">Enregistrer</button></div>`,(el,close)=>{const gg=gaugeMount('vx-g');$('vx-x').onclick=close;
+  $('vx-ok').onclick=()=>{const k=$('vx-km')?$('vx-km').value.trim():'';if(k){svc.kmE=k;if(kEnd)setEnd(k)}const g=gg();if(g!=null)svc.gE=g;save();close();render();toast(conge?'Bonnes vacances !':'Enregistré')}})}catch(e){}}
+function gapKm(p,n){const a=num(p.kmE),b=num(n.kmS);return a!=null&&b!=null?b-a:null}
+function absGaps(){const sv=S.services.filter(x=>x.s).slice().sort((a,b)=>a.s-b.s),out=[];
+ for(let i=0;i<sv.length-1;i++){const p=sv[i],n=sv[i+1];if(!p.absOut||!p.e||dk(n.s)<=p.absOut)continue;const d=gapKm(p,n);
+  const moved=d!=null?d>20:(p.gE!=null&&n.gS!=null&&Math.abs(n.gS-p.gE)>0.1);out.push({p,n,tOut:p.e,tIn:n.s,d,moved})}return out}
+const gapKmIn=(y,m)=>absGaps().filter(g=>g.moved&&g.d>0&&mkey(...[new Date(g.tOut)].map(d=>[d.getFullYear(),d.getMonth()])[0])===mkey(y,m)&&mkey(...[new Date(g.tIn)].map(d=>[d.getFullYear(),d.getMonth()])[0])===mkey(y,m)).reduce((a,g)=>a+g.d,0);
+function afterReturn(prev,n){const tr=truckAt(n.s);const conge=prev.absType==='CONGÉ';
+ const d=new Date(n.s),y=d.getFullYear(),m=d.getMonth();const kStart=!kmGet(y,m).start&&dk(prev.e).slice(0,7)!==dk(n.s).slice(0,7);
+ const setStart=v=>{S.km=S.km||{};S.km[mkey(y,m)]={...kmGet(y,m),start:v}};if(kStart&&n.kmS){setStart(n.kmS);save()}
+ const needKm=!n.kmS;
+ afterSheet(`<h3>${conge?'Bon retour !':'Veux-tu renseigner ces informations ?'}</h3>${conge?'<p>Veux-tu renseigner ces informations ?</p>':''}
+  ${needKm?`<div class="fg"><label>Kilométrage de départ${kStart?' (vaut aussi KMS au 1er)':''}<input id="rx-km" type="number" inputmode="numeric"></label></div>`:''}${gaugeHTML('rx-g',tr)}
+  <div class="acts"><button class="btn" id="rx-x">Plus tard</button><button class="btn pri" id="rx-ok">Enregistrer</button></div>`,(el,fin)=>{const gg=gaugeMount('rx-g');$('rx-x').onclick=fin;
+  $('rx-ok').onclick=()=>{const k=$('rx-km')?$('rx-km').value.trim():'';if(k){n.kmS=k;if(kStart)setStart(k)}const g=gg();if(g!=null)n.gS=g;save();render();fin()}},()=>showConstat(prev,n))}
+function showConstat(prev,n){const d=gapKm(prev,n),tr=truckAt(prev.e),cap=tankCap(tr),gO=prev.gE,gI=n.gS,pc=tr&&tr.jauge==='%';
+ const jg=gO!=null&&gI!=null?`Jauge : ${gStr(gO,pc)} → ${gStr(gI,pc)}.`:'';let R=null;
+ if(cap&&gO!=null&&gI!=null){let avg=32;try{const c=consoTruck(tr);avg=c.avg||c.N.m||32}catch(e){}R=(gI-gO)*cap+(d>0?d*avg/100:0)}
+ const est=R==null?'':(R>Math.max(40,cap*0.08)?`<br>D'après la jauge, un plein d'environ <b>${fkm(Math.round(R/10)*10)} L</b> a probablement été fait.`:'<br>D\'après la jauge, aucun plein ne semble avoir été fait.');
+ let t,x;
+ if(d==null){t='Camion pendant ton absence';x='Kilométrage manquant avant ou après l\'absence : impossible de savoir exactement s\'il a roulé.';
+  if(gO!=null&&gI!=null){x+='<br>'+jg+(gI>gO+0.1?' La jauge est montée : un plein a été fait.':gI<gO-0.1?' La jauge a baissé : le camion a sans doute roulé.':' La jauge n\'a pas bougé.')}}
+ else if(d<0){t='Kilométrage incohérent';x=`Ton kilométrage de retour (${fkm(num(n.kmS))}) est inférieur à celui de ton départ (${fkm(num(prev.kmE))}). Vérifie tes saisies.`}
+ else if(d<=20){t='Le camion n\'a pas roulé';x=(d?`Seulement ${d} km au compteur.`:'Même kilométrage qu\'à ton départ.')+(jg?'<br>'+jg:'')+(gO!=null&&gI!=null&&gI>gO+0.1?' La jauge est montée : un plein a été fait.':'')}
+ else{t=`Le camion a roulé ${fkm(d)} km`;x=`${fkm(num(prev.kmE))} → ${fkm(num(n.kmS))} km pendant ton absence.${jg?'<br>'+jg:''}${est}<br>Fais un plein complet à la reprise pour relancer le calcul de consommation.`}
+ ask(t,x,[{t:'OK',v:1,c:'pri'}])}
 
 /* ================== calcul de coupure ================== */
 function openCoupure(){const now=Date.now();
@@ -559,7 +607,7 @@ function consoNorm(segs){const F=S.consoFlags||{};const pts=[...(S.consoRef||[])
  if(pts.length>=10){const L=pts.reduce((a,p)=>a+p.l,0),K=pts.reduce((a,p)=>a+p.km,0),m=L/K*100;return {lo:m*0.7,hi:m*1.3,m,n:pts.length,learned:true}}
  return {lo:20,hi:40,n:pts.length,learned:false}}
 function consoTruck(tr){const P=S.pleins.filter(x=>x.immat===tr.immat&&x.t>=tr.since&&(!tr.until||x.t<=tr.until)&&gasP(x)).sort((a,b)=>a.t-b.t||(num(a.km)||0)-(num(b.km)||0));
- const {seg,base}=consoChain(P);const N=consoNorm(seg);const F=S.consoFlags||{};
+ const {seg,base}=consoChain(P);const G=absGaps().filter(g=>g.moved);for(const sg of seg)if(sg.ok&&G.some(g=>g.tOut>=sg.from.t&&g.tIn<=sg.to.t)){sg.ok=false;sg.why='camion utilisé pendant ton absence'}const N=consoNorm(seg);const F=S.consoFlags||{};
  for(const s of seg)if(s.ok){const out=s.c<N.lo||s.c>N.hi;s.flag=F[s.to.id]||null;s.out=out;s.use=s.flag==='ok'||(!out&&s.flag!=='excl')}
  const ok=seg.filter(s=>s.ok&&s.use);const L=ok.reduce((a,s)=>a+s.l,0),K=ok.reduce((a,s)=>a+s.km,0);
  const months={};for(const s of ok){const a=new Date(s.from.t),b=new Date(s.to.t);if(a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()){const k=a.getFullYear()+'-'+pad(a.getMonth()+1);const o=months[k]=months[k]||{l:0,km:0};o.l+=s.l;o.km+=s.km}}
@@ -927,7 +975,7 @@ function truckStats(tr){const from=tr.service?inputsToMs(tr.service,'00:00'):tr.
  for(const r of A.rests){if(!r.done||!inP(r.from))continue;if(!r.weekly){if(r.a.ep&&r.a.ep.n&&!isDom(r.a.ep))nd++;continue}const st=wkStatus(r);if(st==='paye'){wep++;nd+=nightsIn(r.from,r.to)}else if(st==='rass'){rass++;nd+=nightsIn(r.from,r.to)}}
  const kms=[];let gas=0;for(const p of S.pleins){if(p.immat!==tr.immat||!inP(p.t))continue;const k=num(p.km);if(k)kms.push(k);if(p.g&&p.g.on){const v=num(p.g.v);if(v)gas+=v}}
  for(const [k,o] of Object.entries(S.km||{})){const [y,m]=k.split('-').map(Number);const t0=new Date(y,m-1,1).getTime(),t1=new Date(y,m,1).getTime()-1;if(t0>=from&&t1<=to)for(const x of [o.start,o.end]){const n=num(x);if(n)kms.push(n)}}
- const km=kms.length>1?Math.max(...kms)-Math.min(...kms):null;const c=consoTruck(tr);return {days:days.size,nd,wep,rass,km,gas,avg:c.avg,from}}
+ let km=kms.length>1?Math.max(...kms)-Math.min(...kms):null;if(km!=null)km-=absGaps().filter(g=>g.moved&&g.d>0&&g.tOut>=from&&g.tIn<=to).reduce((a,g)=>a+g.d,0);const c=consoTruck(tr);return {days:days.size,nd,wep,rass,km,gas,avg:c.avg,from}}
 const curTruck=()=>(S.trucks||[]).filter(t=>t.since<=Date.now()).pop();const curImmat=()=>{const t=curTruck();return t?t.immat:S.settings.tracteur};
 const parseD=v=>{v=String(v||'').trim();let m=v.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);if(m)return {ms:new Date(+m[3],+m[2]-1,+m[1]).getTime(),iso:m[3]+'-'+pad(+m[2])+'-'+pad(+m[1])};m=v.match(/^(\d{4})-(\d{2})-(\d{2})$/);if(m)return {ms:new Date(+m[1],+m[2]-1,+m[3]).getTime(),iso:v};if(/^\d{4}$/.test(v))return {year:+v};return null};
 function openAddTruck(){sheet(`<h3>Ajouter un camion</h3><div class="fg"><label>Immatriculation<input id="at-i" autocapitalize="characters"></label></div><div class="fg"><label>Entreprise<input id="at-c" value="${esc(S.settings.societe||'')}"></label></div>
@@ -947,7 +995,7 @@ function truckHTML(){const tr=getTr();if(!tr){view='trucks';return trucksHTML()}
  const fY=k=>kDate(k).toLocaleDateString('fr-FR');const per=old?[tr.pfrom,tr.pto].filter(Boolean).join(' → '):[tr.service?fY(tr.service):'',tr.until?new Date(tr.until).toLocaleDateString('fr-FR'):(tr.service?"aujourd'hui":'')].filter(Boolean).join(' → ');
  const sub=[tr.company,[tr.brand,tr.model,num(tr.puiss)!=null?String(num(tr.puiss)):''].filter(Boolean).join(' '),per].filter(Boolean).join(' · ');
  const car=TF.filter(([k])=>k!=='company'&&k!=='brand'&&k!=='model'&&tr[k]).map(([k,l,ty,u])=>`<li><div class="t">${l}</div><b>${esc(u?u(tr[k]):tr[k])}</b></li>`);
- const tk=(tr.tanks||[]).filter(v=>num(v));if(tk.length)car.push(`<li><div class="t">Réservoir${tk.length>1?'s':''} gasoil</div><b>${tk.map(v=>fkm(num(v))+' L').join(' + ')}${tk.length>1?' = '+fkm(tk.reduce((a,v)=>a+num(v),0))+' L':''}</b></li>`);
+ const tk=(tr.tanks||[]).filter(v=>num(v));if(tk.length)car.push(`<li><div class="t">Réservoir${tk.length>1?'s':''} gasoil</div><b>${tk.map(v=>fkm(num(v))+' L').join(' + ')}${tk.length>1?' = '+fkm(tk.reduce((a,v)=>a+num(v),0))+' L':''}</b></li>`);if(!tr.id&&tk.length)car.push(`<li><div class="t">Jauge</div><b>${tr.jauge==='%'?'Pourcentage':'Huitièmes'}</b></li>`);
  return `<div class="row" style="margin-bottom:4px"><button class="btn sm" id="bk-tr">‹ Mes camions</button></div><h1>${esc(tr.immat||'Camion')}</h1>${sub?`<p class="muted" style="margin-top:-6px">${esc(sub)}</p>`:''}
  ${tiles.length?`<div class="tiles">${tiles.map(([l,v])=>`<div class="stt"><span>${l}</span><b>${v}</b></div>`).join('')}</div>`:''}
  <div id="tph" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:14px"></div>
@@ -961,14 +1009,14 @@ function openTruckEdit(tr){const old=!!tr.id;const i=old?-1:S.trucks.indexOf(tr)
   `<div class="g2">${inp('service','Mon camion depuis',tr.service,'date')}${inp('since','Début calcul conso',dk(tr.since),'date')}</div>${tr.until?inp('until','Jusqu\'au',dk(tr.until),'date'):''}`}
  ${TF.map(([k,l,ty])=>{if(ty==='gear'){const m=String(tr.boite||'').match(/^(Automatique|Manuelle)?\s*(\d+)?/)||[];return `<div class="fg"><label>${l}</label><div class="g2" style="margin-top:4px"><select id="te-gt"><option value="">—</option>${['Automatique','Manuelle'].map(o=>`<option ${m[1]===o?'selected':''}>${o}</option>`).join('')}</select><select id="te-gn"><option value="">Rapports</option>${Array.from({length:13},(_,i)=>i+4).map(n=>`<option value="${n}" ${+m[2]===n?'selected':''}>${n} rapports</option>`).join('')}</select></div></div>`}
   const v=tr[k]||(k==='company'&&!old&&!tr.company?S.settings.societe:'');return ty?`<div class="fg"><label>${l}<input id="te-${k}" inputmode="${ty==='dec'?'decimal':'numeric'}" value="${esc(v)}"></label></div>`:inp(k,l,v)}).join('')}
- <div class="fg"><label>Réservoirs gasoil (litres)</label><div id="ttk">${tanks.map((v,j)=>`<div class="row" style="margin-top:6px"><input class="sp" type="number" inputmode="numeric" data-tk="${j}" value="${esc(v)}" placeholder="Réservoir ${j+1}">${j?`<button type="button" class="btn sm" data-rm="${j}">✕</button>`:''}</div>`).join('')}</div><button type="button" class="btn sm" id="te-addtk" style="margin-top:8px">+ Réservoir</button></div>
+ <div class="fg"><label>Réservoirs gasoil (litres)</label><div id="ttk">${tanks.map((v,j)=>`<div class="row" style="margin-top:6px"><input class="sp" type="number" inputmode="numeric" data-tk="${j}" value="${esc(v)}" placeholder="Réservoir ${j+1}">${j?`<button type="button" class="btn sm" data-rm="${j}">✕</button>`:''}</div>`).join('')}</div><button type="button" class="btn sm" id="te-addtk" style="margin-top:8px">+ Réservoir</button></div>${old?'':`<div class="fg"><label>Jauge du camion<select id="te-jauge" style="margin-top:4px"><option value="8" ${tr.jauge!=='%'?'selected':''}>Huitièmes (0 à 8/8)</option><option value="%" ${tr.jauge==='%'?'selected':''}>Pourcentage</option></select></label></div>`}
  <div class="fg"><label>Notes<textarea id="te-notes" rows="4" style="display:block;width:100%;font-size:16px;font-family:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:4px">${esc(tr.notes||'')}</textarea></label></div>
  <div class="acts">${old?'<button class="btn red" id="te-del">Supprimer</button>':''}<button class="btn" id="te-x">Annuler</button><button class="btn pri" id="te-ok">Enregistrer</button></div>`;
  sheet(draw(),(el,close)=>{const tkv=()=>[...el.querySelectorAll('[data-tk]')].map(x=>x.value.trim());
   el.addEventListener('click',e=>{if(e.target.id==='te-addtk'){const v=tkv();v.push('');const box=$('ttk');box.insertAdjacentHTML('beforeend',`<div class="row" style="margin-top:6px"><input class="sp" type="number" inputmode="numeric" data-tk="${v.length-1}" placeholder="Réservoir ${v.length}"><button type="button" class="btn sm" data-rm="${v.length-1}">✕</button></div>`)}
    const rm=e.target.closest('[data-rm]');if(rm)rm.parentNode.remove()});
   $('te-x').onclick=close;if($('te-del'))$('te-del').onclick=async()=>{if(await ask('Supprimer ce camion ?','',[{t:'Supprimer',v:true,c:'red'},{t:'Annuler',v:false}])){S.oldTrucks=S.oldTrucks.filter(t=>t!==tr);save();close();view='trucks';render()}};
-  $('te-ok').onclick=()=>{TF.forEach(([k,l,ty])=>{if(ty==='gear'){const a=$('te-gt').value,b=$('te-gn').value;tr.boite=[a,b?b+' rapports':''].filter(Boolean).join(' ')}else tr[k]=$('te-'+k).value.trim()});tr.notes=$('te-notes').value;tr.tanks=tkv();
+  $('te-ok').onclick=()=>{TF.forEach(([k,l,ty])=>{if(ty==='gear'){const a=$('te-gt').value,b=$('te-gn').value;tr.boite=[a,b?b+' rapports':''].filter(Boolean).join(' ')}else tr[k]=$('te-'+k).value.trim()});tr.notes=$('te-notes').value;tr.tanks=tkv();if($('te-jauge'))tr.jauge=$('te-jauge').value;
    if(old){tr.immat=$('te-immat').value.trim().toUpperCase();tr.pfrom=$('te-pfrom').value.trim();tr.pto=$('te-pto').value.trim();if(!S.oldTrucks.includes(tr))S.oldTrucks.push(tr)}
    else{tr.service=$('te-service').value||'';const si=$('te-since').value;if(si)tr.since=inputsToMs(si,'00:00');const u=$('te-until');if(u&&u.value){tr.until=inputsToMs(u.value,'00:00')+DAY-1;if(S.trucks[i+1])S.trucks[i+1].since=tr.until+1}}
    save();close();if(old)tSel=tr.id;view='truck';render();toast('Fiche enregistrée')}})}
@@ -1018,7 +1066,7 @@ function computeStats(){const A=analyze();const Y={};const mk=t=>{const d=new Da
   const st=wkStatus(r);if(st==='paye'||st==='rass'){const n=nightsIn(r.from,r.to),wx={t:r.from,x:fD(r.from)+' → '+fD(r.to)+' · '+plStr(r.a.ep)+' · '+fDur(r.gap)};b.nd+=n;b.L.nd.push({t:r.from,x:'Week-end '+(st==='rass'?'rassemblement':'payé')+' '+fD(r.from)+' → '+fD(r.to)+' · '+plStr(r.a.ep)+' · '+n+' nuit'+(n>1?'s':'')});if(st==='paye'){b.wep++;b.L.wep.push(wx)}else{b.rass++;const nm=(S.rass||{})[r.a.id];b.L.rass.push({...wx,id:r.a.id,x:(nm&&nm.name?nm.name+' · ':'')+wx.x})}}
   let clean=true;for(let k=dk(r.from);k<=dk(r.to);k=addDays(k,1)){const w=kDate(k).getDay();if(absOn(k)||(w>0&&w<6&&feries(+k.slice(0,4)).has(k))){clean=false;break}}
   if(clean)avAdd(y,'we',r.gap)}
- for(const [k,o] of Object.entries(S.km||{})){const a=num(o.start),b2=num(o.end);if(a!=null&&b2!=null&&b2>a){const [y,m]=k.split('-').map(Number);const bb=box(y,m-1)[0];bb.km=b2-a;bb.L.km.push({t:new Date(y,m-1,1).getTime(),x:Mois(m-1)+' '+y+' · '+fkm(a)+' → '+fkm(b2)+' · '+fkm(b2-a)+' km'})}}
+ for(const [k,o] of Object.entries(S.km||{})){const a=num(o.start),b2=num(o.end);if(a!=null&&b2!=null&&b2>a){const [y,m]=k.split('-').map(Number);const bb=box(y,m-1)[0];bb.km=b2-a-gapKmIn(y,m-1);bb.L.km.push({t:new Date(y,m-1,1).getTime(),x:Mois(m-1)+' '+y+' · '+fkm(a)+' → '+fkm(b2)+' · '+fkm(b2-a)+' km'})}}
  for(const p of S.pleins){if(!p.g||!p.g.on)continue;const v=num(p.g.v);if(v==null)continue;const [y,m]=mk(p.t);const bb=box(y,m)[0];bb.gas+=v;bb.L.gas.push({t:p.t,x:fD(p.t)+' · '+(p.lieu&&p.lieu.n||'')+' · '+f1(v)+' L'+(p.full===false?' (partiel)':'')})}
  for(const o of Object.values(Y)){const t={days:0,we:0,fer:0,night:0,amp:0,nd:0,wep:0,rass:0,km:0,kmN:0,gas:0};
   for(const b of Object.values(o.months)){t.days+=b.days.size;t.we+=b.we.size;t.fer+=b.fer.size;t.night+=b.night;t.amp+=b.amp;t.nd+=b.nd;t.wep+=b.wep;t.rass+=b.rass;t.gas+=b.gas;if(b.km!=null){t.km+=b.km;t.kmN++}for(const k in b.L)(t.L=t.L||{})[k]=(t.L[k]||[]).concat(b.L[k])}o.tot=t}
