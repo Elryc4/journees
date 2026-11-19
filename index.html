@@ -123,7 +123,7 @@ body.noscroll h1{margin:2px 0 6px}body.noscroll .card{margin:6px 0}
 <script>
 {
 /* ================== utilitaires ================== */
-const HR=3600e3, DAY=86400e3, KEY='jp-data-v1';
+const APP_VERSION='1.0.4';const HR=3600e3, DAY=86400e3, KEY='jp-data-v1';
 const pad=n=>String(n).padStart(2,'0');
 const fT=ms=>{const d=new Date(ms);return pad(d.getHours())+':'+pad(d.getMinutes())};
 const dk=ms=>{const d=new Date(ms);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
@@ -230,30 +230,32 @@ function aireCommune(n,la,lo){comIndex();const k=' '+norm(n)+' ';let c=null,cd=1
  for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++)for(const x of (GRID[(gy+i)+','+(gx+j)]||[])){const d=dist(la,lo,x[2],x[3]);if(d<cd){cd=d;c=x}}
  let big=null;for(const x of BIGL)if(k.includes(' '+x[4]+' ')&&dist(la,lo,x[2],x[3])<40&&(!big||x[5]>big[5]))big=x;
  const r=big||c;return r&&cd<30?[r[0],r[1],big?1:0]:null}
-const OVP=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter','https://overpass.private.coffee/api/interpreter'];let airErr='',airStep='';
-async function ovp(q){let last='';for(const u of OVP){let tm;try{const ctl=new AbortController();tm=setTimeout(()=>ctl.abort(),120000);
-  const r=await fetch(u,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(q),signal:ctl.signal});clearTimeout(tm);
-  if(!r.ok){last='serveur '+r.status;continue}const j=await r.json();if(j&&j.elements)return j;last='réponse vide'}catch(e){clearTimeout(tm);last=e&&e.name==='AbortError'?'délai dépassé':'réseau'}}throw new Error(last)}
+const OVP=['https://overpass-api.de/api/interpreter','https://overpass.openstreetmap.fr/api/interpreter','https://overpass.kumi.systems/api/interpreter','https://maps.mail.ru/osm/tools/overpass/api/interpreter','https://overpass.private.coffee/api/interpreter'];let airErr='',airStep='',ovpOK=null,airLog=[];
+async function ovp(q){let last=[];const list=ovpOK?[ovpOK,...OVP.filter(u=>u!==ovpOK)]:OVP;
+ for(const u of list){const host=u.split('/')[2];for(const how of ['GET','POST']){let tm;try{const ctl=new AbortController();tm=setTimeout(()=>ctl.abort(),90000);
+  const r=how==='GET'?await fetch(u+'?data='+encodeURIComponent(q),{signal:ctl.signal,cache:'no-store'}):await fetch(u,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(q),signal:ctl.signal});clearTimeout(tm);
+  if(!r.ok){last.push(host+' '+r.status);break}const j=await r.json();if(j&&j.elements){ovpOK=u;return j}last.push(host+' vide');break}catch(e){clearTimeout(tm);last.push(host+' '+how+' '+(e&&e.name==='AbortError'?'délai':(e&&e.message||'réseau')))}}}
+ throw new Error(last.slice(0,4).join(' · '))}
 let airBusy=false;async function loadAires(force){if(airBusy)return;airBusy=true;try{await _loadAires(force)}finally{airBusy=false;if(view==='data')render()}}
 async function _loadAires(force){
  try{if(!force){const a=await idbGet('aires');if(a&&a.length){AIR=a.map(airRow);airState='ok';return}}}catch(e){}
  if(!navigator.onLine){airState='absent';if(view==='data')render();return}
- airState='chargement';airErr='';airStep='liste des aires';if(view==='data')render();
+ airState='chargement';airErr='';airLog=[];airStep='liste des aires';if(view==='data')render();
  try{if(!COM.length||!COM.some(x=>x[5]>0))await loadCommunes(true);if(!COM.length)throw new Error('communes manquantes');
   // découpage de la France en zones pour des requêtes légères
   const T=[];for(let la=41.3;la<51.2;la+=2.5)for(let lo=-5.2;lo<9.7;lo+=3.75)T.push([la,lo,Math.min(la+2.5,51.2),Math.min(lo+3.75,9.7)]);
   const seen=new Map(),arr=[];let okZ=0,lastE='';
   for(let i=0;i<T.length;i++){const b=T[i].map(x=>x.toFixed(2)).join(',');airStep='liste des aires (zone '+(i+1)+'/'+T.length+')';if(view==='data')render();
-   try{const j=await ovp('[out:json][timeout:90][bbox:'+b+'];area["ISO3166-1"="FR"][admin_level=2]->.fr;nwr["highway"~"^(services|rest_area)$"]["name"](area.fr);out tags center qt;');okZ++;
+   if(okZ===0&&i>=3){airLog.push(['ko','Arrêt','aucune zone récupérée sur les 3 premières']);break}try{const j=await ovp('[out:json][timeout:90][bbox:'+b+'];area["ISO3166-1"="FR"][admin_level=2]->.fr;nwr["highway"~"^(services|rest_area)$"]["name"](area.fr);out tags center qt;');okZ++;const nb0=arr.length;
     for(const e of j.elements){const t=e.tags||{};const la=e.lat??(e.center&&e.center.lat),lo=e.lon??(e.center&&e.center.lon),n=t.name;if(la==null||!n)continue;
-     const c=aireCommune(n,la,lo);if(!c)continue;const k=norm(n)+'|'+c[0]+'|'+c[1];if(seen.has(k))continue;const row=[n,+la.toFixed(4),+lo.toFixed(4),c[0],c[1],c[2],/^A\s?\d+/i.test(String(t.ref||''))?String(t.ref).replace(/\s+/g,'').toUpperCase():''];seen.set(k,row);arr.push(row)}}catch(e){lastE=e.message}}
+     const c=aireCommune(n,la,lo);if(!c)continue;const k=norm(n)+'|'+c[0]+'|'+c[1];if(seen.has(k))continue;const row=[n,+la.toFixed(4),+lo.toFixed(4),c[0],c[1],c[2],/^A\s?\d+/i.test(String(t.ref||''))?String(t.ref).replace(/\s+/g,'').toUpperCase():''];seen.set(k,row);arr.push(row)}airLog.push(['ok','Aires · zone '+(i+1),(arr.length-nb0)+' aires · '+(ovpOK||'').split('/')[2]])}catch(e){lastE=e.message;airLog.push(['ko','Aires · zone '+(i+1),e.message])}if(view==='data')render()}
   if(arr.length<50)throw new Error((lastE||'trop peu d\'aires')+' · '+okZ+'/'+T.length+' zones');
   await idbPut('aires',arr).catch(()=>{});AIR=arr.map(airRow);airState='ok';if(okZ<T.length)airErr=(T.length-okZ)+' zone(s) non récupérée(s), relance plus tard pour compléter';if(view==='data')render();
   // numéros d'autoroute, zone par zone
   let okM=0;const G={};
   for(let i=0;i<T.length;i++){const b=T[i].map(x=>x.toFixed(2)).join(',');airStep='numéros d\'autoroute (zone '+(i+1)+'/'+T.length+')';if(view==='data')render();
-   try{const m=await ovp('[out:json][timeout:90][bbox:'+b+'];way["highway"="motorway"]["ref"];out tags center qt;');okM++;
-    for(const w of m.elements){if(!w.center||!w.tags||!w.tags.ref)continue;const ref=String(w.tags.ref).split(';')[0].replace(/\s+/g,'').toUpperCase();const k=Math.round(w.center.lat*20)+','+Math.round(w.center.lon*20);(G[k]=G[k]||[]).push([w.center.lat,w.center.lon,ref])}}catch(e){}}
+   if(okM===0&&i>=3){airLog.push(['ko','Arrêt','aucun numéro récupéré sur les 3 premières zones']);break}try{const m=await ovp('[out:json][timeout:90][bbox:'+b+'];way["highway"="motorway"]["ref"];out tags center qt;');okM++;let nm=0;
+    for(const w of m.elements){if(!w.center||!w.tags||!w.tags.ref)continue;const ref=String(w.tags.ref).split(';')[0].replace(/\s+/g,'').toUpperCase();const k=Math.round(w.center.lat*20)+','+Math.round(w.center.lon*20);(G[k]=G[k]||[]).push([w.center.lat,w.center.lon,ref]);nm++}airLog.push(['ok','Autoroutes · zone '+(i+1),nm+' tronçons'])}catch(e){airLog.push(['ko','Autoroutes · zone '+(i+1),e.message])}if(view==='data')render()}
   for(const row of arr){if(row[6])continue;const gy=Math.round(row[1]*20),gx=Math.round(row[2]*20);let bb=null,bd=1.5;for(let i=-1;i<=1;i++)for(let k=-1;k<=1;k++)for(const w of (G[(gy+i)+','+(gx+k)]||[])){const d=dist(row[1],row[2],w[0],w[1]);if(d<bd){bd=d;bb=w}}if(bb)row[6]=bb[2]}
   await idbPut('aires',arr).catch(()=>{});AIR=arr.map(airRow);if(okM<T.length&&!airErr)airErr='numéros d\'autoroute incomplets ('+okM+'/'+T.length+' zones), relance plus tard';
   airStep=''}catch(e){airState='erreur';airErr=e.message||'inconnu';airStep=''}
@@ -779,7 +781,7 @@ async function exportFile(name,data,mime){const blob=new Blob([data],{type:mime}
  try{const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);return 'ok'}catch(e){return 'fail'}}
 
 /* ================== RÉCAPS ================== */
-let rm=new Date();rm=new Date(rm.getFullYear(),rm.getMonth(),1);let rk='J';
+let rm=new Date();rm=new Date(rm.getFullYear(),rm.getMonth()-(rm.getDate()<=5?1:0),1);let rk='J';
 function recapInfo(y,m){const k=kmGet(y,m),a=num(k.start),b=num(k.end);const out=[];
  if(a!=null&&b!=null&&b>a)out.push('Kilométrage du mois : <b>'+fkm(b-a)+' km</b>');
  const tr=(S.trucks||[]).slice().reverse().find(t=>{const s0=new Date(y,m,1).getTime(),s1=new Date(y,m+1,1).getTime();return t.since<s1&&(!t.until||t.until>=s0)});
@@ -787,11 +789,23 @@ function recapInfo(y,m){const k=kmGet(y,m),a=num(k.start),b=num(k.end);const out
  return out.length?`<div class="muted" style="font-size:13px;line-height:1.5;margin:8px 2px 0">${out.join('<br>')}</div>`:''}
 function recapsHTML(){const y=rm.getFullYear(),m=rm.getMonth();const Lt=rk==='J'?layoutJ(y,m):layoutP(y,m);
  const days=[...S.services].filter(s=>{const d=new Date(s.s);return d.getFullYear()===y&&d.getMonth()===m}).sort((a,b)=>a.s-b.s);
- return `<h1>Récaps</h1><div class="seg" id="rseg"><button data-k="J" class="${rk==='J'?'on':''}">Journées</button><button data-k="P" class="${rk==='P'?'on':''}">Pleins + lavages</button></div>
+ return `<div class="row" style="justify-content:space-between;flex-wrap:nowrap"><h1>Récaps</h1><button class="chip" id="rexp" style="flex:none">Exporter le mois</button></div><div class="seg" id="rseg"><button data-k="J" class="${rk==='J'?'on':''}">Journées</button><button data-k="P" class="${rk==='P'?'on':''}">Pleins + lavages</button></div>
  <div class="mnav"><button class="btn sm" id="rp">‹</button><b>${Mois(m)} ${y}</b><button class="btn sm" id="rn">›</button></div>
  <div class="prev">${toSVG(Lt)}</div>${rk==='P'?recapInfo(y,m):''}<button class="btn pri full" id="rpdf" style="margin-top:12px">Exporter en PDF</button>${rk==='P'?`<button class="btn full" id="rkm" style="margin-top:10px">Kilométrages du mois (1er : ${esc(kmGet(y,m).start||'—')} · fin : ${esc(kmGet(y,m).end||'—')})</button>`:''}
  ${rk==='J'?`<h2>Journées du mois</h2><button class="btn full" id="radd">+ Ajouter une journée oubliée</button><ul class="list" id="rlist">${days.map(s=>`<li data-id="${s.id}"><div class="t">${fD(s.s)} · ${fT(s.s)} → ${s.e?fT(s.e):'en cours'}<small>${esc(plStr(s.sp))} → ${esc(plStr(s.ep))}</small></div><span class="muted">›</span></li>`).join('')||'<li class="muted">Aucune journée ce mois-ci</li>'}</ul>`:''}`}
-function recapsMount(){$('rseg').onclick=e=>{const b=e.target.closest('button');if(b){rk=b.dataset.k;render()}};
+async function shareFiles(list){try{const fs=list.map(x=>new File([x.data],x.name,{type:'application/pdf'}));if(navigator.canShare&&navigator.canShare({files:fs})){await navigator.share({files:fs});return 'ok'}}catch(e){if(e&&e.name==='AbortError')return 'abort'}
+ let r='ok';for(const x of list){r=await exportFile(x.name,x.data,'application/pdf');if(r!=='ok')break}return r}
+async function exportMonth(){const y=rm.getFullYear(),m=rm.getMonth();const inM=t=>{const d=new Date(t);return d.getFullYear()===y&&d.getMonth()===m};
+ const k=kmGet(y,m),N=new Date(y,m+1,0).getDate(),W=[];let fix=null;
+ if(!k.start){W.push('KMS au 1er non renseigné');fix=fix||(()=>openKm(y,m))}
+ if(!k.end){W.push('KMS au '+N+' non renseigné');fix=fix||(()=>openKm(y,m))}
+ const open=S.services.filter(v=>inM(v.s)&&!v.e).sort((a,b)=>a.s-b.s);for(const v of open){W.push('Journée du '+fD(v.s)+' sans heure d\'arrivée');fix=fix||(()=>openService(v))}
+ const pq=S.pleins.filter(p=>inM(p.t)&&p.g&&p.g.on&&!p.g.v);if(pq.length)W.push(pq.length+' plein'+(pq.length>1?'s':'')+' sans volume de gasoil (« ? »)');
+ if(W.length){const v=await ask('Avant l\'export de '+Mois(m).toLowerCase()+' '+y,'<ul style="margin:0;padding-left:18px">'+W.map(w=>'<li>'+esc(w)+'</li>').join('')+'</ul>',[{t:'Exporter quand même',v:'go',c:'pri'},...(fix?[{t:'Compléter',v:'fix'}]:[])]);
+  if(v==='fix'&&fix)return fix();if(v!=='go')return}
+ const nm=(S.settings.nom||'').trim(),suf=' '+Mois(m)+' '+y+(nm?' '+nm:'')+'.pdf';
+ const r=await shareFiles([{name:'Frais'+suf,data:toPDF(layoutJ(y,m))},{name:'Gasoil'+suf,data:toPDF(layoutP(y,m))}]);if(r==='fail')toast('Export impossible ici')}
+function recapsMount(){$('rexp').onclick=exportMonth;$('rseg').onclick=e=>{const b=e.target.closest('button');if(b){rk=b.dataset.k;render()}};
  $('rp').onclick=()=>{rm=new Date(rm.getFullYear(),rm.getMonth()-1,1);render()};$('rn').onclick=()=>{rm=new Date(rm.getFullYear(),rm.getMonth()+1,1);render()};
  $('rpdf').onclick=async()=>{const y=rm.getFullYear(),m=rm.getMonth();const Lt=rk==='J'?layoutJ(y,m):layoutP(y,m);
   const nm=(rk==='J'?'Frais ':'Pleins-lavages ')+Mois(m)+' '+y+'.pdf';const r=await exportFile(nm,toPDF(Lt),'application/pdf');if(r==='fail')toast('Export impossible ici')};
@@ -830,14 +844,14 @@ function openTruck(i){const tr=S.trucks[i];sheet(`<h3>${esc(tr.immat)}</h3><div 
   if(uv&&i<S.trucks.length-1){const u=inputsToMs(uv,'00:00')+DAY-1;if(u<tr.since)return toast('Fin avant le début');tr.until=u;S.trucks[i+1].since=u+1}save();close();render()}})}
 const back=t=>`<div class="row" style="margin-bottom:4px"><button class="btn sm" id="bk-more">‹ Plus</button></div><h1>${t}</h1>`;
 const MORE=[['stat','Stats','Totaux et moyennes par mois et par année'],['trucks','Mes camions','Fiches, photos et calculs par camion'],['places','Mes lieux','Lieux visités, lieux rattachés, départements'],['backup','Sauvegarde','Sauvegarder et restaurer tes données'],['set','Réglages','Nom, société, immatriculations, dépôt, domicile'],['data','Données hors connexion','Communes et aires d\'autoroute']];
-function openMore(){sheet(`<h3>Plus</h3><ul class="list" id="mm">${MORE.map(([k,l,d])=>`<li data-v="${k}"><div class="t"><b>${l}</b><small>${d}</small></div><span class="muted">›</span></li>`).join('')}</ul><div class="acts"><button class="btn full" id="mmx">Fermer</button></div>`,(el,close)=>{$('mmx').onclick=close;
+function openMore(){sheet(`<h3>Plus</h3><ul class="list" id="mm">${MORE.map(([k,l,d])=>`<li data-v="${k}"><div class="t"><b>${l}</b><small>${d}</small></div><span class="muted">›</span></li>`).join('')}</ul><p class="muted" style="text-align:center;margin:14px 0 0;font-size:13px">Version ${APP_VERSION}</p><div class="acts"><button class="btn full" id="mmx">Fermer</button></div>`,(el,close)=>{$('mmx').onclick=close;
  $('mm').onclick=e=>{const li=e.target.closest('li[data-v]');if(li){close();view=li.dataset.v;render();scrollTo(0,0)}}})}
 function setHTML(){return back('Réglages')+`<p class="muted">Tous les champs sont facultatifs.</p>${setFieldsHTML(false)}<button class="btn pri full" id="sset">Enregistrer les réglages</button>`}
 function backupHTML(){return back('Sauvegarde')+`<div class="card"><div>${esc(summary(S))}</div><div class="muted">Dernière sauvegarde : ${S.lastBackup?fD(S.lastBackup)+' à '+fT(S.lastBackup):'jamais'}</div>
  <div class="acts" style="flex-direction:column"><button class="btn pri full" id="sbk">Sauvegarder les données</button><label class="btn full" style="display:flex;align-items:center;justify-content:center;color:var(--ink);font-size:16px">Restaurer les données<input type="file" id="srs" accept=".json,application/json" style="display:none"></label></div></div>
  <h2>Photos des camions</h2><div class="card"><div class="muted" id="phc">Photos enregistrées : …</div><div class="acts" style="flex-direction:column"><button class="btn full" id="spb">Sauvegarder les photos</button><label class="btn full" style="display:flex;align-items:center;justify-content:center;color:var(--ink);font-size:16px">Restaurer des photos<input type="file" id="spr" accept=".json,application/json" style="display:none"></label></div></div>`}
 function dataHTML(){return back('Données hors connexion')+`<h2>Communes françaises</h2><div class="card row"><span class="sp">${comState==='ok'?COM.length+' communes enregistrées':comState==='chargement'?'Téléchargement…':comState==='erreur'?'Échec du téléchargement':'Pas encore téléchargées (connexion nécessaire)'}</span><button class="btn sm" id="scom">${comState==='ok'?'Mettre à jour':'Télécharger'}</button></div>
- <h2>Aires d'autoroute</h2><div class="card row"><span class="sp">${airState==='ok'?AIR.length+' aires connues'+(airStep?' · récupération des '+airStep+'…':''):airState==='chargement'?'Téléchargement de la '+airStep+'… (une à deux minutes)':airState==='erreur'?'Échec du téléchargement':'Pas encore téléchargées (connexion nécessaire)'}${airErr?`<br><span class="muted" style="font-size:13px">${esc(airErr)}</span>`:''}</span><button class="btn sm" id="sair">${airState==='ok'?'Mettre à jour':'Télécharger'}</button></div>${AIR.length?'<button class="btn full" id="sairl" style="margin-top:10px">Voir les aires</button>':''}`}
+ <h2>Aires d'autoroute</h2><div class="card row"><span class="sp">${airState==='ok'?AIR.length+' aires connues'+(airStep?' · récupération des '+airStep+'…':''):airState==='chargement'?'Téléchargement de la '+airStep+'… (une à deux minutes)':airState==='erreur'?'Échec du téléchargement':'Pas encore téléchargées (connexion nécessaire)'}${airErr?`<br><span class="muted" style="font-size:13px">${esc(airErr)}</span>`:''}</span><button class="btn sm" id="sair">${airState==='ok'?'Mettre à jour':'Télécharger'}</button></div>${airLog.length?`<div class="card" style="padding:8px 12px"><div class="muted" style="font-size:13px;margin-bottom:4px">${airLog.filter(x=>x[0]==='ok').length} réussie(s) · ${airLog.filter(x=>x[0]==='ko').length} échec(s)</div>${airLog.slice().reverse().map(x=>`<div style="display:flex;gap:8px;font-size:13px;padding:3px 0;border-top:1px solid var(--line)"><b style="color:${x[0]==='ok'?'var(--go)':'var(--red)'};flex:none">${x[0]==='ok'?'✓':'✗'}</b><span style="flex:none">${esc(x[1])}</span><span class="muted" style="font-size:12.5px;overflow-wrap:anywhere">${esc(x[2])}</span></div>`).join('')}</div>`:''}${AIR.length?'<button class="btn full" id="sairl" style="margin-top:10px">Voir les aires</button>':''}`}
 let airF='all',airQ='',airS='az';
 function airesList(){const q=norm(airQ);let L=AIR.filter(a=>(airF!=='no'||!aRef(a))&&(!q||a[6].includes(q)||norm(a[3]).includes(q)));
  const al=(a,b)=>aireCore(a[6]+' ')<aireCore(b[6]+' ')?-1:1;const rn=r=>{const m=String(r).match(/^([A-Z]+)(\d+)/);return m?[m[1],+m[2]]:['ZZ',1e9]};
