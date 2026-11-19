@@ -123,7 +123,7 @@ body.noscroll h1{margin:2px 0 6px}body.noscroll .card{margin:6px 0}
 <script>
 {
 /* ================== utilitaires ================== */
-const APP_VERSION='1.0.5';const HR=3600e3, DAY=86400e3, KEY='jp-data-v1';
+const APP_VERSION='1.0.6';const HR=3600e3, DAY=86400e3, KEY='jp-data-v1';
 const pad=n=>String(n).padStart(2,'0');
 const fT=ms=>{const d=new Date(ms);return pad(d.getHours())+':'+pad(d.getMinutes())};
 const dk=ms=>{const d=new Date(ms);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
@@ -844,7 +844,7 @@ function openTruck(i){const tr=S.trucks[i];sheet(`<h3>${esc(tr.immat)}</h3><div 
   if(uv&&i<S.trucks.length-1){const u=inputsToMs(uv,'00:00')+DAY-1;if(u<tr.since)return toast('Fin avant le début');tr.until=u;S.trucks[i+1].since=u+1}save();close();render()}})}
 const back=t=>`<div class="row" style="margin-bottom:4px"><button class="btn sm" id="bk-more">‹ Plus</button></div><h1>${t}</h1>`;
 const MORE=[['stat','Stats','Totaux et moyennes par mois et par année'],['trucks','Mes camions','Fiches, photos et calculs par camion'],['places','Mes lieux','Lieux visités, lieux rattachés, départements'],['backup','Sauvegarde','Sauvegarder et restaurer tes données'],['set','Réglages','Nom, société, immatriculations, dépôt, domicile'],['data','Données hors connexion','Communes et aires d\'autoroute']];
-function openMore(){sheet(`<h3>Plus</h3><ul class="list" id="mm">${MORE.map(([k,l,d])=>`<li data-v="${k}"><div class="t"><b>${l}</b><small>${d}</small></div><span class="muted">›</span></li>`).join('')}</ul><p class="muted" style="text-align:center;margin:14px 0 0;font-size:13px">Version ${APP_VERSION}</p><div class="acts"><button class="btn full" id="mmx">Fermer</button></div>`,(el,close)=>{$('mmx').onclick=close;
+function openMore(){sheet(`<h3>Plus</h3><ul class="list" id="mm">${MORE.map(([k,l,d])=>`<li data-v="${k}"><div class="t"><b>${l}</b><small>${d}</small></div><span class="muted">›</span></li>`).join('')}</ul><p class="muted" style="text-align:center;margin:14px 0 6px;font-size:13px">Version ${APP_VERSION}</p><button class="btn full" id="mmupd">Rechercher une mise à jour</button><div class="acts"><button class="btn full" id="mmx">Fermer</button></div>`,(el,close)=>{$('mmx').onclick=close;$('mmupd').onclick=()=>window.__upd&&window.__upd($('mmupd'));
  $('mm').onclick=e=>{const li=e.target.closest('li[data-v]');if(li){close();view=li.dataset.v;render();scrollTo(0,0)}}})}
 function setHTML(){return back('Réglages')+`<p class="muted">Tous les champs sont facultatifs.</p>${setFieldsHTML(false)}<button class="btn pri full" id="sset">Enregistrer les réglages</button>`}
 function backupHTML(){return back('Sauvegarde')+`<div class="card"><div>${esc(summary(S))}</div><div class="muted">Dernière sauvegarde : ${S.lastBackup?fD(S.lastBackup)+' à '+fT(S.lastBackup):'jamais'}</div>
@@ -1088,10 +1088,23 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden)return;star
 document.addEventListener('touchmove',e=>{if(e.touches.length===1&&document.body.classList.contains('noscroll')&&!e.target.closest('.ov')&&(!window.visualViewport||visualViewport.scale<=1.01))e.preventDefault()},{passive:false});
 window.addEventListener('unhandledrejection',e=>{try{toast('Erreur : '+esc(String(e.reason&&e.reason.message||e.reason)))}catch(x){}});window.addEventListener('error',e=>{try{toast('Erreur : '+esc(String(e.message)))}catch(x){}});
 render();startGPS();loadCommunes(false).then(()=>loadAires(false));
-try{if('serviceWorker' in navigator&&location.protocol==='https:'&&!/claude/.test(location.hostname)){const had=!!navigator.serviceWorker.controller;let swReg=null;
- navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{swReg=r;r.update().catch(()=>{})}).catch(()=>{});
- document.addEventListener('visibilitychange',()=>{if(!document.hidden&&swReg)swReg.update().catch(()=>{})});
- let done=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(done||!had)return;done=true;if(!document.querySelector('.ov'))location.reload();else toast('Mise à jour installée : elle s\'appliquera à la prochaine ouverture')})}}catch(e){}
+try{if('serviceWorker' in navigator&&location.protocol==='https:'&&!/claude/.test(location.hostname)){const had=!!navigator.serviceWorker.controller;let swReg=null,manual=false,pend=false,done=false;
+ const UK='jp-upd-last',EVERY=6*HR;
+ const lsG=k=>{try{return localStorage.getItem(k)}catch(e){return null}},lsS=(k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}};
+ if(lsG('jp-upd-done')){lsS('jp-upd-done',null);setTimeout(()=>toast('Version '+APP_VERSION+' installée'),400)}
+ const auto=()=>{if(!swReg||!navigator.onLine)return;const l=+lsG(UK)||0;if(Date.now()-l<EVERY)return;
+  setTimeout(()=>{if(!navigator.onLine)return;swReg.update().then(()=>lsS(UK,String(Date.now()))).catch(()=>{})},4000)};
+ navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{swReg=r;auto()}).catch(()=>{});
+ const apply=()=>{if(!document.querySelector('.ov')){lsS('jp-upd-done','1');location.reload()}};
+ document.addEventListener('visibilitychange',()=>{if(document.hidden)return;if(pend)apply();else auto()});
+ navigator.serviceWorker.addEventListener('controllerchange',()=>{if(done||!had)return;done=true;if(manual){lsS('jp-upd-done','1');location.reload()}else pend=true});
+ window.__upd=async b=>{if(!swReg){toast('Mise à jour indisponible');return}if(!navigator.onLine){toast('Pas de réseau, réessaie plus tard');return}
+  const t0=b.textContent;b.textContent='Recherche…';b.disabled=true;manual=true;
+  try{await swReg.update();lsS(UK,String(Date.now()));const w=swReg.installing||swReg.waiting;
+   if(w){b.textContent='Téléchargement…';if(pend){lsS('jp-upd-done','1');location.reload();return}setTimeout(()=>{if(!done){b.textContent=t0;b.disabled=false;toast('Téléchargement trop long, réessaie')}},30000)}
+   else if(pend){lsS('jp-upd-done','1');location.reload()}
+   else{manual=false;b.textContent=t0;b.disabled=false;toast('Déjà à jour ('+APP_VERSION+')')}}
+  catch(e){manual=false;b.textContent=t0;b.disabled=false;toast('Pas de réseau, réessaie plus tard')}}}}catch(e){}
 }
 </script>
 </body>
