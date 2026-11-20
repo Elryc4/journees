@@ -123,7 +123,7 @@ body.noscroll h1{margin:2px 0 6px}body.noscroll .card{margin:6px 0}
 <script>
 {
 /* ================== utilitaires ================== */
-const APP_VERSION='1.2';const HR=3600e3, DAY=86400e3, KEY='jp-data-v1';
+const APP_VERSION='1.2.1';const HR=3600e3, DAY=86400e3, KEY='jp-data-v1';
 const pad=n=>String(n).padStart(2,'0');
 const fT=ms=>{const d=new Date(ms);return pad(d.getHours())+':'+pad(d.getMinutes())};
 const dk=ms=>{const d=new Date(ms);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
@@ -557,7 +557,7 @@ function homeHTML(){const A=analyze(),now=A.now;let h='';
  else if(A.last&&A.last.e){const g=now-A.last.e;
   const cr=A.rests.find(r=>!r.done);if(cr&&cr.weekly)h+=`<div class="muted">Arrivé le ${fD(A.last.e)} à ${fT(A.last.e)} · ${esc(plStr(A.last.ep))}</div><div style="margin-top:6px"><b>Repos hebdo en cours : ${fDur(g)}</b></div>`;
   else h+=`<div class="muted">Arrivé à ${fT(A.last.e)}${dk(A.last.e)!==dk(now)?' ('+fD(A.last.e)+')':''} · ${esc(plStr(A.last.ep))}</div>
-  <div class="tiles" style="margin-top:8px"><div class="amp"><span>Repos 11 h</span><b>${fT(A.last.e+11*HR)}</b></div><div class="amp"><span>Repos 9 h</span><b>${fT(A.last.e+9*HR)}</b></div></div>
+  <div class="tiles" style="margin-top:8px"><div class="amp"><span>Repos 11 h</span><b>${fT(A.last.e+11*HR)}</b></div><div class="amp ${A.reduced-(A.last.e-A.last.s>13*HR?1:0)>=3?'nope':''}"><span>Repos 9 h</span><b>${fT(A.last.e+9*HR)}</b></div></div>
   ${A.openDebts.length?`<div class="muted" style="margin-top:8px">Pour rattraper ${fDur(A.openDebts[0].h)} : repartir après <b>${fT(A.last.e+11*HR+A.openDebts[0].h)}</b></div>`:''}`}
  else h+=`<div><b>Bienvenue.</b> Appuie sur DÉPART pour commencer ta journée.</div>`;
  h+='</div>';
