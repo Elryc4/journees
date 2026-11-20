@@ -1,6 +1,6 @@
 // Ouverture toujours en local (aucune attente réseau). Les mises à jour sont cherchées
 // par le bouton « Rechercher une mise à jour » ou automatiquement toutes les 6 h (en fond).
-const VERSION = 'v1.2.1';
+const VERSION = 'v1.2.2';
 const CACHE = 'journees-' + VERSION;
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => {
